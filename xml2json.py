@@ -173,7 +173,6 @@ class xml2json:
             xml_leaf = True
 
         if xml_leaf:
-            print local, len([self.tagnons(child) for child in children])
 
             leaf = {'_type': local}
 
