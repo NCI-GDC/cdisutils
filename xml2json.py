@@ -1,7 +1,7 @@
 from lxml import etree
 import json, os, glob
 from pprint import pprint
-import psycopg2
+import psycopg2, copy
 
 from local_settings import DB, DB_USER, DB_PASSWORD, DB_PORT
 
@@ -159,26 +159,65 @@ class xml2json:
         local = self.tagnons(element)
         prefix = element.prefix
 
-        if aliquot != None:
-            if fields:
-                for key in fields:
-                    aliquot[key] = fields[key]
-            aliquot[local] = element.text
-        else:
-            if parent_key:
-                fields[local] = element.text
+        # print local, parent_key
 
-        if local == "aliquot":
-            root.append({})
-            aliquot = root[-1]
+        children = element.findall("*")
+
+        grandchildren = []
+        for child in children:
+            grandchildren += child.findall("*")
+
+        xml_leaf = False
+
+        if len(children) != 0 and len(grandchildren) == 0:
+            xml_leaf = True
+
+        if xml_leaf:
+            print local, len([self.tagnons(child) for child in children])
+
+            leaf = {'_type': local}
+
+            if element.text is not None:
+                leaf[local] = element.text.strip()
+            else:
+                leaf[local] = None
+                
+            for child in children:
+                if child.text is not None:
+                    leaf[self.tagnons(child)] = child.text.strip()
+                else:
+                    leaf[self.tagnons(child)] = None
+
+            for key, value in fields.iteritems():
+                leaf[key] = value
+
+            root.append(leaf)
             
-        # for key in includes:
-        #     if local == key:
-        #         unique_key = "%s:%s" % (parent_key, key)
-        #         fields[unique_key] = element.text
+        else:
 
-        for child in element.findall("*"):
-            self.flatten_element(root, child, aliquot, includes, fields, parent_key = local)
+            fields = copy.copy(fields)
+
+            for attr, value in element.items():
+                fields["%s.%s" % (local, attr)] = value
+
+            if element.text is not None:
+                fields[local] = element.text.strip()
+            else:
+                fields[local] = None
+
+            for child in children:
+                child_name = self.tagnons(child)
+                if element.text is not None:
+                    fields[child_name] = element.text.strip()
+                else:
+                    fields[child_name] = None
+
+                for attr, value in child.items():
+                    fields["%s.%s" % (child_name, attr)] = value
+
+            for child in children:
+
+                self.flatten_element(root, child, aliquot, includes, fields, parent_key = local)
 
                 
     def toJSON(self, recurse = True, full_namespaces = False, full_attributes = True, use_namespaces = False, flatten = False, includes = []):
