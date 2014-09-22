@@ -10,13 +10,17 @@ class plugin(object):
   Otherwise, will default to the 'default' namespace.
 
   Example:
+    @plugin('a_func')
+    def a_function():
+      ...
+
     @plugin('test_func','one_namespace','two_namespace')
     def some_function():
       ...
     
     plugin.plugins
     {
-      'default': {},
+      'default': {'a_func': <function a_function at ...>},
       'one_namespace': {'test_func': <function some_function at ...>},
       'two_namespace': {'test_func': <function some_function at ...>},
     }
