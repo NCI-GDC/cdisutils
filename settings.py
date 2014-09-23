@@ -18,22 +18,21 @@ class Settings:
         Insert any indirect lookups in this function
         """
 
-        if key in self.settings:
-            return self.settings[attribute]
-        else:
+        if key not in self.settings:
             logging.error("Key [{key}] was not in settings dictionary".format(key = key))
             return None
 
+        return self.settings[attribute]
 
     def __init__(self, path = None):
         self.path = self.default_path
         self.load(path)
-
+        
     def __call__(self, key):
-        self.lookup(key)
+        return self.lookup(key)
 
     def __getitem__(self, key):
-        self.lookup(key)
+        return self.lookup(key)
 
     def __setitem__(self, key, value):
         self.settings[attribute] = value
