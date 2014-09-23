@@ -1,0 +1,66 @@
+import yaml, pprint, os, logging, json
+
+class Settings:
+
+    """
+    This class is used to contain the global settings.  The
+    settings will be imported on the load of the module from the
+    default path.
+
+    """
+
+    settings = {}
+
+    default_path = "settings.yaml"
+
+    def lookup(self, key):
+        """ 
+        Insert any indirect lookups in this function
+        """
+
+        if key in self.settings:
+            return self.settings[attribute]
+        else:
+            logging.error("Key [{key}] was not in settings dictionary".format(key = key))
+            return None
+
+
+    def __init__(self, path = None):
+        self.path = self.default_path
+        self.load(path)
+
+    def __call__(self, key):
+        self.lookup(key)
+
+    def __getitem__(self, key):
+        self.lookup(key)
+
+    def __setitem__(self, key, value):
+        self.settings[attribute] = value
+        return self
+
+    def __repr__(self):
+        return str(self.settings)
+
+    def load(self, path = None):
+
+        if path is None and self.path is None:
+            logging.error("Unable to load settings, no path specified.")
+            return self
+        
+        if path is not None: 
+            logging.debug("Updating settings file path {path}".format(path = path))
+            self.path = path
+
+        logging.info("Loading settings file {path}".format(path = path))
+
+        try:
+            with open(self.path, 'r') as yaml_file:
+                self.settings = yaml.load(yaml_file)
+        except Exception, msg:
+            logging.error("Unable to load settings from {path}: {msg}".format(path = path, msg = str(msg)))
+            logging.info("Proceeding with no settings")
+        else:
+            logging.debug("Successfully loaded settings from {path}.".format(path = path))
+
+        return self
