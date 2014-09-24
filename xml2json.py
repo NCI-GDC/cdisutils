@@ -1,9 +1,12 @@
 from lxml import etree
-import json, os, glob
+import json, os, glob, re
 from pprint import pprint
-import psycopg2, copy
+import psycopg2, copy, logging
 
-from local_settings import DB, DB_USER, DB_PASSWORD, DB_PORT
+try:
+    from local_settings import DB, DB_USER, DB_PASSWORD, DB_PORT
+except:
+    logging.warn("xml2json: unable to import local_settings.py")
 
 class xml2json:
 
@@ -28,7 +31,12 @@ class xml2json:
     def __init__(self, path = None):
         """the class specifies a single xml document at a time"""
         self.path = path
-        
+
+        self.table = None
+        self.table_index = 0
+        self.include_fieldless = False
+        self.attrNamespacePattern = re.compile("\{.+\}(.+)")
+
         if self.path:
             self.loadFromFile()
 
@@ -37,11 +45,14 @@ class xml2json:
 
     def loadFromFile(self, path = None):
         """load the xml document from path file"""
+        logging.debug("importing xml from path {path}".format(path = path))
+        
         if path:
             self.tree = etree.parse(path)
         else:
             self.tree = etree.parse(self.path)
         self.root = self.tree.getroot()
+        logging.debug("imported xml from path {path}".format(path = path))
 
     def loadFromString(self, xml_string):
         """load the xml document from path file"""
@@ -153,73 +164,72 @@ class xml2json:
                     # recurse using the element we just added as root
                     self.add_element(root[local], child, recurse, full_namespaces, full_attributes, use_namespaces)
 
-    # def flatten_element(self, root, element, aliquot_uuid = None, includes = [], fields = {}, parent_key = None):
-    def flatten_element(self, root, element, aliquot = None, includes = [], fields = {}, parent_key = None):
+
+    def flatten_element(self, root, element, fields = {}, parent_key = None, includes = None, include_fieldless = False):
         
-        local = self.tagnons(element)
-        prefix = element.prefix
-
-        # print local, parent_key
-
+        xml_leaf = False
+        local    = self.tagnons(element)
+        prefix   = element.prefix
         children = element.findall("*")
 
-        grandchildren = []
+        """ 
+        Define a leaf node as any leaf that has children but no
+        grandchildren
+        """
         for child in children:
-            grandchildren += child.findall("*")
-
-        xml_leaf = False
-
-        if len(children) != 0 and len(grandchildren) == 0:
-            xml_leaf = True
+            grandchildren = child.findall("*")
+            if len(grandchildren) == 0:
+                xml_leaf = True
 
         if xml_leaf:
-
+            """ 
+            If this node is a leaf node, then add it directly to the final
+            flattened document
+            """
+            
             leaf = {'_type': local}
-
-            if element.text is not None:
-                leaf[local] = element.text.strip()
-            else:
-                leaf[local] = None
-                
-            for child in children:
-                if child.text is not None:
-                    leaf[self.tagnons(child)] = child.text.strip()
-                else:
-                    leaf[self.tagnons(child)] = None
-
+    
+            # Add all of the values we accumulated from parent nodes
             for key, value in fields.iteritems():
                 leaf[key] = value
 
             root.append(leaf)
-            
-        else:
+        
+        # Copy the fields dict to avoid breaking references
+        fields = copy.copy(fields)
 
-            fields = copy.copy(fields)
+        # Add the element text
+        if element.text is not None  and element.text.strip() != "":
+            fields[local] = element.text.strip()
+        elif include_fieldless:
+            fields[local] = None
 
-            for attr, value in element.items():
-                fields["%s.%s" % (local, attr)] = value
+        # Add add the element attributes to the fields
+        for attr, value in element.items():
+            nsmatch = self.attrNamespacePattern.match(attr)
+            if nsmatch: attr = nsmatch.group(1)
+            key = "{local}.{attribute}".format(local = local, attribute = attr)
+            fields[key] = value
 
-            if element.text is not None:
-                fields[local] = element.text.strip()
-            else:
-                fields[local] = None
+        # Add each child to the fields
+        for child in children:
+            child_name = self.tagnons(child)
 
-            for child in children:
-                child_name = self.tagnons(child)
-                if element.text is not None:
-                    fields[child_name] = element.text.strip()
-                else:
-                    fields[child_name] = None
+            if child.text is not None and child.text.strip() != "":
+                fields[child_name] = child.text.strip()
+            elif include_fieldless:
+                fields[child_name] = None
 
-                for attr, value in child.items():
-                    fields["%s.%s" % (child_name, attr)] = value
+            for attr, value in child.items():
+                nsmatch = self.attrNamespacePattern.match(attr)
+                if nsmatch: attr = nsmatch.group(1)
+                fields["%s.%s" % (child_name, attr)] = value
 
-            for child in children:
-
-                self.flatten_element(root, child, aliquot, includes, fields, parent_key = local)
+        for child in children:
+            self.flatten_element(root, child, includes = includes, fields = fields, parent_key = local)
 
                 
-    def toJSON(self, recurse = True, full_namespaces = False, full_attributes = True, use_namespaces = False, flatten = False, includes = []):
+    def toJSON(self, recurse = True, full_namespaces = False, full_attributes = True, use_namespaces = False, flatten = False, includes = [], include_fieldless = False):
 
         """convert an xml document to json, load tree from path if specified
 
@@ -229,22 +239,24 @@ class xml2json:
         :param use_namespaces: whether or not to append the namespace to the element name i.e. "nmsp1:elmnt1"
 
         """        
+        logging.debug("converting xml to json")
 
         doc = []
 
         if flatten:
-            self.flatten_element(doc, self.root, includes = includes)
+            self.flatten_element(doc, self.root, includes = includes, include_fieldless = include_fieldless)
         else:
             self.add_element(doc, self.root, recurse, full_namespaces, full_attributes, use_namespaces)
 
+        logging.debug("completed conversion from xml to json")
         return doc
 
     def connectToPostgres(self, DB, DB_USER, DB_PASSWORD, DB_PORT, DB_HOST):
         """connect the instance to a postgres database"""
-        self.conn = psycopg2.connect(database=DB, user=DB_USER, password=DB_PASSWORD, port=DB_PORT, host=DB_HOST)
+        self.conn = psycopg2.connect(database=DB, user=DB_USER, password=DB_PASSWORD, port=DB_PORT)
 
     def loadTable(self, table_name, xml_field, recurse = True, full_namespaces = False,
-                  full_attributes = True, use_namespaces = False, flatten = False, includes = []):
+                  full_attributes = True, use_namespaces = False, flatten = False, includes = [], include_fieldless = False):
         """Execute query on database for use with iterator
         
         :param table_name: is the relation to pull the data from 
@@ -260,6 +272,7 @@ class xml2json:
         self.use_namespaces = use_namespaces
         self.flatten = flatten
         self.includes = includes 
+        self.include_fieldless = include_fieldless
 
         self.pscur = self.conn.cursor()
         self.pscur.execute("SELECT count(%s) FROM %s" % (xml_field, table_name))
@@ -271,6 +284,10 @@ class xml2json:
 
         return total
 
+    def loadAllDocs(self):
+        self.table = self.pscur.fetchall()
+        self.table_index = 0
+
     def next(self):
         """Iterator to grab a single entry from postgres at a time. Example:
 
@@ -281,11 +298,21 @@ class xml2json:
         ``
         
         """
-        
+
+        doc = {}
+
         if not self.pscur:
             raise Exception("postgres cursor not defined, maybe .loadTable()?")
 
-        row = self.pscur.fetchone()
+        if self.table:
+            if self.table_index < len(self.table):
+                row = self.table[self.table_index]
+                self.table_index += 1
+            else:
+                row = None
+
+        else:
+            row = self.pscur.fetchone()
 
         # End condition
         if not row or len(row) <= 0: 
@@ -294,10 +321,10 @@ class xml2json:
 
         # Convert the current entry
         self.loadFromString(row[0])
-        doc = {}
         if self.flatten:
             doc = self.toJSON(self.recurse, self.full_namespaces, self.full_attributes, 
-                              self.use_namespaces, flatten = True, includes = self.includes)
+                              self.use_namespaces, flatten = True, includes = self.includes, 
+                              include_fieldless = self.include_fieldless)
         else:
             doc = self.toJSON(self.recurse, self.full_namespaces, self.full_attributes, 
                               self.use_namespaces)
@@ -322,7 +349,6 @@ class xml2json:
 
             count = 0
             for doc in self:
-                # pprint(doc)
                 print "converting %d/%d\r" % (count, total),
                 count += 1
 
@@ -403,9 +429,12 @@ def main():
     """take all the xml files in xmlroot and convert them to json documents in jsonroot"""
 
     conv = xml2json()
-    conv.connectToPostgres(DB, DB_USER, DB_PASSWORD, DB_PORT)
-    conv.createMapping("tcga_biospecimen", "biospecimen", "analysis")
-    
+    conn = conv.connectToPostgres(DB, DB_USER, DB_PASSWORD, DB_PORT, 'localhost')
+    # conv.createMapping("tcga_biospecimen", "biospecimen", "analysis")
+    # conv.loadTable("tcga_biospecimen", "biospecimen", flatten = True)
+    # for doc in conv:
+    #     pprint(doc)
+    #     break
 
 if "__main__" in __name__:
     main()
