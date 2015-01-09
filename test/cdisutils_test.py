@@ -14,20 +14,20 @@ from shutil import rmtree
 
 
 def test_no_proxy_cm():
-    os.environ["http_proxy"] = "foobar"
+    os.environ["http_proxy"] = "http://foobar:1234"
     with net.no_proxy():
         assert not os.environ.get("http_proxy")
-    assert os.environ["http_proxy"] == "foobar"
+    assert os.environ["http_proxy"] == "http://foobar:1234"
 
 
 def test_no_proxy_dec():
-    os.environ["http_proxy"] = "foobar"
+    os.environ["http_proxy"] = "http://foobar:1234"
 
     @net.no_proxy()
     def inner():
         assert not os.environ.get("http_proxy")
     inner()
-    assert os.environ["http_proxy"] == "foobar"
+    assert os.environ["http_proxy"] == "http://foobar:1234"
 
 
 SWIFT_JSON = json.dumps([{"path": "/test_segs/seg1",
