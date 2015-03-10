@@ -22,6 +22,7 @@ class ProcessPool(object):
         except KeyboardInterrupt:
             pool.close()
             pool.terminate()
+            pool.join()
             return
 
         pool.close()
