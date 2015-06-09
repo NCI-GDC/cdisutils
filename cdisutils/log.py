@@ -15,8 +15,10 @@ def get_logger(name):
         logger = logging.getLogger(name)
         logger.setLevel(logging.INFO)
         formatter = logging.Formatter('[%(asctime)s][%(name)10s][%(levelname)7s] %(message)s')
-        handler = logging.StreamHandler(sys.stdout)
-        handler.setFormatter(formatter)
-        logger.addHandler(handler)
+        if not (len(logger.handlers) > 0
+                and type(logger.handlers[0]) == logging.StreamHandler):
+            handler = logging.StreamHandler(sys.stdout)
+            handler.setFormatter(formatter)
+            logger.addHandler(handler)
         logger.propagate = False
     return logger
