@@ -29,6 +29,15 @@ class no_proxy(ContextDecorator):
             os.environ[key] = val
 
 
+def url_for_boto_key(key):
+    template = "s3://{host}/{bucket}/{name}"
+    return template.format(
+        host=key.bucket.connection.host,
+        bucket=key.bucket.name,
+        name=key.name
+    )
+
+
 class BotoManager(object):
     """
     A class that abstracts away boto calls to multiple underlying
