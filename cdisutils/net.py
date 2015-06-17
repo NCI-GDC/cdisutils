@@ -60,6 +60,10 @@ class BotoManager(object):
         if not lazy:
             self.connect()
 
+    @property
+    def hosts(self):
+        return self.conns.keys()
+
     def connect(self):
         for host, kwargs in self.config.iteritems():
             self.conns[host] = connect_s3(**kwargs)
