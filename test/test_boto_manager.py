@@ -1,8 +1,10 @@
 from unittest import TestCase
 from cdisutils.net import BotoManager
-
+from cdisutils.net import url_for_boto_key
 
 from boto.s3.connection import S3Connection
+import boto
+from moto import mock_s3
 from mock import patch, MagicMock, call
 
 
@@ -60,3 +62,10 @@ class BotoManagerTest(TestCase):
         self.assertIn(call.get_bucket().get_key("dir/key"), mock.mock_calls)
         with self.assertRaises(KeyError):
             manager.get_url("s3://fake_host/bucket/dir/key")
+
+    def test_url_for_boto_key(self):
+        with mock_s3():
+            conn = boto.connect_s3()
+            buck = conn.create_bucket("foo")
+            key = buck.new_key("bar")
+            self.assertEqual(url_for_boto_key(key), "s3://s3.amazonaws.com/foo/bar")
