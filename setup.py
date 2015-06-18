@@ -7,6 +7,7 @@ setup(
     license="Apache",
     packages=["cdisutils"],
     install_requires=[
-        'apache-libcloud',
+        'apache-libcloud==0.15.1',
+        'boto==2.36.0',
     ]
 )
