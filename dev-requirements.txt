@@ -1,2 +1,2 @@
-pytest
+lockfile
 moto==0.4.1
