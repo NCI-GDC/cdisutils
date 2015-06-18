@@ -58,8 +58,6 @@ class BotoManager(object):
             },
         }
         """
-        # TODO maybe validate required keys here? might cause more trouble
-        # than it's worth
         self.config = config
         for host, kwargs in self.config.iteritems():
             # we need to pass the host argument in when we connect, so
