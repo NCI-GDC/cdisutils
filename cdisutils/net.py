@@ -3,7 +3,7 @@
 import os
 import functools
 
-from boto import connect_s3
+from boto import connect_s3, s3
 from urlparse import urlparse
 
 
@@ -51,8 +51,8 @@ class BotoManager(object):
         Config map should be a map from hostname to args, e.g.:
         {
             "s3.amazonaws.com": {
-                "access_key_id": "foo",
-                "secret_access_key": "bar",
+                "aws_access_key_id": "foo",
+                "aws_secret_access_key": "bar",
                 "is_secure": False,
                 . . .
             },
@@ -63,6 +63,9 @@ class BotoManager(object):
             # we need to pass the host argument in when we connect, so
             # set it here
             kwargs["host"] = host
+            if 'calling_format' not in kwargs:
+                kwargs["calling_format"] = s3.connection.OrdinaryCallingFormat()
+
         self.conns = {}
         if not lazy:
             self.connect()
