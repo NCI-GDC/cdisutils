@@ -41,3 +41,7 @@ reasonable format string, set to level INFO.
 Utilites for working with tungsten provisioned machines
 
 ## `cdisutils.settings`
+
+# contributing
+
+Read how to contribute [here](https://github.com/nci-gdc/gdcapi/blob/master/contributing.md)
