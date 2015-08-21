@@ -1,6 +1,11 @@
 class Mapping(object):
 
-    PROGRAM_PHSID = ['phs000178', 'phs000218']
+    PHSID_TREE = {
+        'phs000178': [],
+        'phs000218': ['phs000463', 'phs000464', 'phs000465', 'phs000515',
+                      'phs000471', 'phs000466', 'phs000470', 'phs000467',
+                      'phs000468', 'phs000469']
+    }
 
     PHSID_TO_PROJECT = {
         'phs000178': {
@@ -11,7 +16,7 @@ class Mapping(object):
             'TCGA-CNTL'},
         'phs000218': [
             'TARGET-ALL-P1', 'TARGET-ALL-P2', 'TARGET-AML', 'TARGET-AML-IF', 'TARGET-WT', 'TARGET-CCSK', 'TARGET-RT', 'TARGET-NBL', 'TARGET-OS',
-            'MDLS'],
+            'TARGET-MDLS'],
         'phs000463': ['TARGET-ALL-P1'],
         'phs000464': ['TARGET-ALL-P2'],
         'phs000465': ['TARGET-AML'],
@@ -21,11 +26,11 @@ class Mapping(object):
         'phs000470': ['TARGET-RT'],
         'phs000467': ['TARGET-NBL'],
         'phs000468': ['TARGET-OS'],
-        'phs000469': ['MDLS']
+        'phs000469': ['TARGET-MDLS']
     }
 
     PROJECT_TO_PHSID = {
-        'MDLS': ['phs000218', 'phs000469'],
+        'TARGET-MDLS': ['phs000218', 'phs000469'],
         'TARGET-ALL-P1': ['phs000218', 'phs000463'],
         'TARGET-ALL-P2': ['phs000218', 'phs000464'],
         'TARGET-AML': ['phs000218', 'phs000465'],
@@ -88,8 +93,10 @@ class Mapping(object):
         return None if the project doesn't exist 
         '''
         phsids = self.get_phsids(project)
-        if len(phsids) > 1: 
-            return phsids[1]
+        for phsid in phsids:
+            if phsid not in self.PHSID_TREE:
+                return phsid 
+
 
     def get_program_level_phsid(self, project):
         '''
@@ -97,8 +104,9 @@ class Mapping(object):
         return None if the project doesn't exist 
         '''
         phsids = self.get_phsids(project)
-        if len(phsids) > 0: 
-            return self.get_phsids(project)[0]
+        for phsid in phsids:
+            if phsid in  self.PHSID_TREE:
+                return phsid 
 
     def get_project(self, phsid):
         '''
