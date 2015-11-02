@@ -2,8 +2,11 @@
 
 import os
 import functools
+import hashlib
 
 from boto import connect_s3, s3
+from dateutil import parser
+from datetime import timedelta, datetime
 from urlparse import urlparse
 
 
@@ -36,6 +39,28 @@ def url_for_boto_key(key):
         bucket=key.bucket.name,
         name=key.name
     )
+
+def md5sum_with_size(iterable):
+    '''
+    Get md5sum and size given an iterable (eg: a boto key)
+    '''
+    md5 = hashlib.md5()
+    size = 0
+    for chunk in iterable:
+        md5.update(chunk)
+        size += len(chunk)
+    return md5.hexdigest(), size
+
+def cancel_stale_multiparts(bucket, stale_days=7):
+    '''
+    Cancel uploads that are stale for more than [stale_days]
+    File state shouldn't be effected as there might be ongoing upload for this key
+    '''
+    uploads = bucket.get_all_multipart_uploads()
+    for upload in uploads:
+        initiated = parser.parse(upload.initiated)
+        if (datetime.now(initiated.tzinfo) - initiated) > timedelta(days=stale_days):
+            upload.cancel_upload()
 
 
 class BotoManager(object):
