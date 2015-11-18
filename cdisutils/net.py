@@ -4,7 +4,8 @@ import os
 import functools
 import hashlib
 
-from boto import connect_s3, s3
+from boto import connect_s3
+from boto.s3 import connection
 from dateutil import parser
 from datetime import timedelta, datetime
 from urlparse import urlparse
@@ -89,7 +90,7 @@ class BotoManager(object):
             # set it here
             kwargs["host"] = host
             if 'calling_format' not in kwargs:
-                kwargs["calling_format"] = s3.connection.OrdinaryCallingFormat()
+                kwargs["calling_format"] = connection.OrdinaryCallingFormat()
 
         self.conns = {}
         if not lazy:
