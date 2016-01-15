@@ -18,7 +18,7 @@ def parse_cmd_args():
         choices=["1", "2", "all"] 
     )
     parser.add_argument("--output",
-        help="which output to show (not implemented yet)",
+        help="which output to show",
         nargs='+',
         default="all",
         choices=output_types)
