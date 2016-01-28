@@ -9,5 +9,6 @@ setup(
     install_requires=[
         'apache-libcloud==0.15.1',
         'boto==2.36.0',
+        'python-dateutil==2.4.2',
     ]
 )
