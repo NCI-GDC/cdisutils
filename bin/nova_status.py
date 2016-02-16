@@ -162,35 +162,38 @@ for url in os_urls:
         os.environ['OS_TENANT_NAME'], #PROJECT_ID
         url
     ) as nova:
+        az_info = {}
+        for az in nova.availability_zones.list():
+            if az.hosts:
+              zone = {}
+              for host in az.hosts:
+                  val = dict(node_info)
+                  try:
+                      nova_host = nova.hosts.get(host)[0]
+                      val['total_cores'] = nova_host.cpu
+                      val['total_disk'] = nova_host.disk_gb
+                      val['total_ram'] = nova_host.memory_mb
+                      val['services'] = []
+                      zone[host] = val
+                  except Exception as e:
+                      print "Can't access {}: {}".format(host, e)
+                      pass
+              az_info[az.zoneName] = zone
         az_tag = url.find("av")
         cur_av_zone = url[az_tag:az_tag+3]
         if cur_av_zone not in avail_zones:
-            avail_zones[cur_av_zone] = {}
+            avail_zones[cur_av_zone] = az_info
         # get servers and flavors
         servers = nova.servers.list()
         flavors = nova.flavors.list()
-
         # get information
         for server in servers:
             az_str = getattr(server, 'OS-EXT-AZ:availability_zone')
-            if az_str not in avail_zones[cur_av_zone]:
-                avail_zones[cur_av_zone][az_str] = {}
             
             cur_zone = avail_zones[cur_av_zone][az_str]
-
             host_str = getattr(server, 'OS-EXT-SRV-ATTR:host')
             if host_str:
-                if (host_str not in cur_zone):    
-                    cur_host = dict(node_info)
-                    cur_host['services'] = []
-                    which_host = nova.hosts.get(host_str)[0]
-                    cur_host['total_cores'] = which_host.cpu
-                    cur_host['total_disk'] = which_host.disk_gb
-                    cur_host['total_ram'] = which_host.memory_mb
-                    cur_zone[host_str] = cur_host
-                else:
-                    cur_host = cur_zone[host_str]
-
+                cur_host = cur_zone[host_str]
                 cur_flavor = nova.flavors.get(server.flavor['id'])
                 cur_host['used_cores'] += cur_flavor.vcpus
                 cur_host['used_ram'] += cur_flavor.ram
