@@ -169,10 +169,13 @@ for url in os_urls:
               for host in az.hosts:
                   val = dict(node_info)
                   try:
-                      nova_host = nova.hosts.get(host)[0]
-                      val['total_cores'] = nova_host.cpu
-                      val['total_disk'] = nova_host.disk_gb
-                      val['total_ram'] = nova_host.memory_mb
+                      nova_host = nova.hosts.get(host)
+                      val['total_cores'] = nova_host[0].cpu
+                      val['total_disk'] = nova_host[0].disk_gb
+                      val['total_ram'] = nova_host[0].memory_mb
+                      val['used_cores'] = nova_host[1].cpu
+                      val['used_disk'] = nova_host[1].disk_gb
+                      val['used_ram'] = nova_host[1].memory_mb
                       val['services'] = []
                       zone[host] = val
                   except Exception as e:
@@ -195,9 +198,6 @@ for url in os_urls:
             if host_str:
                 cur_host = cur_zone[host_str]
                 cur_flavor = nova.flavors.get(server.flavor['id'])
-                cur_host['used_cores'] += cur_flavor.vcpus
-                cur_host['used_ram'] += cur_flavor.ram
-                cur_host['used_disk'] += cur_flavor.ephemeral
                 cur_host['services'].append(server.human_id)
 
 # print information
