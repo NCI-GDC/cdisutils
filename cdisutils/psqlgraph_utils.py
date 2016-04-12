@@ -15,26 +15,26 @@ def add_db_conn_args(parser):
     """
 
     parser.add_argument(
-        '-D',
-        '--database',
+        '-PD',
+        '--pg-database',
         type=str,
         default='test',
         help='The name of the PostgreSQL database to connect to')
     parser.add_argument(
-        '-H',
-        '--host',
+        '-PH',
+        '--pg-host',
         type=str,
         default='localhost',
         help='The host of the PostgreSQL server')
     parser.add_argument(
-        '-P',
-        '--password',
+        '-PP',
+        '--pg-password',
         type=str,
         default=None,
         help='The password for given user (-u). Prompt if not provided')
     parser.add_argument(
-        '-U',
-        '--user',
+        '-PU',
+        '--pg-user',
         type=str,
         default='test',
         help='The user with which to connect to PostgreSQL')
@@ -49,10 +49,10 @@ def extract_db_conn_args(args):
 
     """
 
-    args = vars(args)
+    args = vars(args) if not isinstance(args, dict) else args
     return dict(
-        database=args.get('database'),
-        host=args.get('host'),
-        password=args.get('password'),
-        user=args.get('user'),
+        database=args.get('pg_database'),
+        host=args.get('pg_host'),
+        password=args.get('pg_password'),
+        user=args.get('pg_user'),
     )
