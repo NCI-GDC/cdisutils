@@ -7,6 +7,10 @@ from boto.s3.connection import S3Connection
 import boto
 from moto import mock_s3
 from mock import patch, MagicMock, call
+from tempfile import NamedTemporaryFile
+import yaml
+
+from cdisutils.settings import global_settings
 
 
 def connect_s3_mock(*args, **kwargs):
@@ -35,6 +39,33 @@ class BotoUtilsTest(TestCase):
             },
         }
         manager = BotoManager(config)
+        aws_conn_mock = manager["s3.amazonaws.com"]
+        self.assertEqual(aws_conn_mock.host, "s3.amazonaws.com")
+        self.assertEqual(aws_conn_mock.is_secure, True)
+        site_conn_mock = manager["s3.myinstallation.org"]
+        self.assertEqual(site_conn_mock.host, "s3.myinstallation.org")
+        self.assertEqual(site_conn_mock.is_secure, False)
+
+    @patch("cdisutils.net.connect_s3", connect_s3_mock)
+    def test_from_settings_file(self):
+        with NamedTemporaryFile() as tmp:
+            tmp.write(yaml.safe_dump({'boto_manager': {
+                "s3.amazonaws.com": {
+                    "secret_access_key": "aws_key",
+                    "access_key_id": "secret_key",
+                    "is_secure": True,
+                },
+                "s3.myinstallation.org": {
+                    "secret_access_key": "my_key",
+                    "access_key_id": "my_secret_key",
+                    "is_secure": False,
+                },
+            }}))
+            tmp.flush()
+            tmp.seek(0)
+            global_settings.load(tmp.name)
+
+        manager = BotoManager.from_global_settings()
         aws_conn_mock = manager["s3.amazonaws.com"]
         self.assertEqual(aws_conn_mock.host, "s3.amazonaws.com")
         self.assertEqual(aws_conn_mock.is_secure, True)
@@ -100,4 +131,3 @@ class BotoUtilsTest(TestCase):
             (md5, size) = md5sum_with_size(key)
             assert size == key.size
             assert md5 == key.md5
-

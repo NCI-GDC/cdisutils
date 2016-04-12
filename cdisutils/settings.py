@@ -1,7 +1,19 @@
-import yaml, pprint, os, logging, json
+# -*- coding: utf-8 -*-
+"""
+cdisutils.settings
+----------------------------------
 
-class Settings:
+Define global configuration class
+"""
 
+import os
+import yaml
+
+from .log import get_logger
+from .misc import iterable
+
+
+class GlobalSettings(object):
     """
     This class is used to contain the global settings.  The
     settings will be imported on the load of the module from the
@@ -11,55 +23,111 @@ class Settings:
 
     settings = {}
 
-    default_path = "settings.yaml"
+    default_paths = [
+        os.path.expanduser('~/.config/gdc/settings.yaml'),
+        '/etc/gdc/settings.yaml'
+    ]
 
-    def lookup(self, key):
-        """ 
-        Insert any indirect lookups in this function
+    log = get_logger(__name__)
+
+    @classmethod
+    def load(cls, paths=default_paths, overwrite=True):
+        """Loads config files in reverse order. This means that values from
+        the first path in the list override any collisions in the
+        second path, etc.
+
+        :param path: A string or list of strings to use instead of defaults
+        :param bool overwrite: Delete any previously existing settings
+
         """
 
-        if key not in self.settings:
-            logging.error("Key [{key}] was not in settings dictionary".format(key = key))
-            return None
+        new_settings = {
+            # Load settings, overwriting entries from the bottom of
+            # list with entries from the top
+            key: value
+            for path in reversed(iterable(paths))
+            for key, value in cls.load_path(path).items()
+        }
 
-        return self.settings[attribute]
+        if overwrite:
+            cls.settings = new_settings
+        else:
+            cls.settings.update(new_settings)
 
-    def __init__(self, path = None):
-        self.path = self.default_path
-        self.load(path)
-        
-    def __call__(self, key):
-        return self.lookup(key)
+    @classmethod
+    def load_path(cls, path):
+        cls.log.debug("Loading settings file: '{}'".format(path))
+        config_yaml = cls.read_config(path)
 
-    def __getitem__(self, key):
-        return self.lookup(key)
-
-    def __setitem__(self, key, value):
-        self.settings[attribute] = value
-        return self
-
-    def __repr__(self):
-        return str(self.settings)
-
-    def load(self, path = None):
-
-        if path is None and self.path is None:
-            logging.error("Unable to load settings, no path specified.")
-            return self
-        
-        if path is not None: 
-            logging.debug("Updating settings file path {path}".format(path = path))
-            self.path = path
-
-        logging.info("Loading settings file {path}".format(path = path))
+        if config_yaml is None:
+            cls.log.warning('Proceeding without settings from {}'.format(path))
+            return {}
 
         try:
-            with open(self.path, 'r') as yaml_file:
-                self.settings = yaml.load(yaml_file)
-        except Exception, msg:
-            logging.error("Unable to load settings from {path}: {msg}".format(path = path, msg = str(msg)))
-            logging.info("Proceeding with no settings")
-        else:
-            logging.debug("Successfully loaded settings from {path}.".format(path = path))
+            return yaml.safe_load(config_yaml)
+        except yaml.error.YAMLError as e:
+            msg = "Unable to load settings from {}: {}".format(path, e)
+            cls.log.error(msg)
+            return {}
 
-        return self
+    @classmethod
+    def read_config(cls, path):
+        cls.log.debug("Loading settings file: '{}'".format(path))
+
+        try:
+            with open(path, 'r') as yaml_file:
+                settings_yaml = yaml_file.read()
+        except Exception as e:
+            cls.log.warning("Unable to read settings '{}': {}".format(path, e))
+        else:
+            cls.log.info("Read settings from '{}'.".format(path))
+            return settings_yaml
+
+    @classmethod
+    def get(cls, key, default=None):
+        """Get a value from settings. If absent, log and return None"""
+
+        try:
+            return cls.settings[key]
+        except KeyError as e:
+            msg = 'Missing setting {}, using default. {}'.format(key, e)
+            cls.log.info(msg)
+            return default
+
+    @classmethod
+    def set(cls, key, value):
+        """Set a value"""
+        if key in cls.settings:
+            cls.log.info("Overwriting setting {}".format(key))
+        cls.settings[key] = value
+        return value
+
+    @classmethod
+    def update(cls, settings):
+        for key, value in settings.iteritems():
+            cls.set(key, value)
+
+    @classmethod
+    def __getitem__(cls, key):
+        return cls.settings[key]
+
+    @classmethod
+    def __setitem__(cls, key, value):
+        cls.set(key, value)
+
+    @classmethod
+    def __delitem__(cls, key):
+        del cls.settings[key]
+
+    @classmethod
+    def __repr__(cls):
+        return "<GlobalSettings({})>".format(', '.join(cls.settings.keys()))
+
+    @classmethod
+    def clear(cls):
+        if cls.settings != {}:
+            cls.log.warning("Deleting global settings!")
+        cls.settings = {}
+
+
+global_settings = GlobalSettings()

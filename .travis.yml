@@ -4,4 +4,4 @@ python:
 install:
   - python setup.py install
   - pip install -r dev-requirements.txt
-script: "nosetests -v"
+script: "py.test -vv"
