@@ -10,5 +10,6 @@ setup(
         'apache-libcloud==0.15.1',
         'boto==2.36.0',
         'python-dateutil==2.4.2',
+        'PyYAML==3.11',
     ]
 )

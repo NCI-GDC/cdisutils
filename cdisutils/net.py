@@ -10,6 +10,8 @@ from dateutil import parser
 from datetime import timedelta, datetime
 from urlparse import urlparse
 
+from .settings import global_settings
+
 
 class ContextDecorator(object):
     def __call__(self, f):
@@ -72,6 +74,9 @@ class BotoManager(object):
     which can be used transparently through this object.
     """
 
+    # The default namespace in global_settings
+    SETTINGS_NS = "boto_manager"
+
     def __init__(self, config, lazy=False):
         """
         Config map should be a map from hostname to args, e.g.:
@@ -95,6 +100,11 @@ class BotoManager(object):
         self.conns = {}
         if not lazy:
             self.connect()
+
+    @classmethod
+    def from_global_settings(cls, namespace=SETTINGS_NS, *args, **kwargs):
+        config = global_settings.get(namespace, {})
+        return BotoManager(config, *args, **kwargs)
 
     @property
     def hosts(self):
