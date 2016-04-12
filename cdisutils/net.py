@@ -3,12 +3,15 @@
 import os
 import functools
 import hashlib
+import yaml
 
 from boto import connect_s3
 from boto.s3 import connection
 from dateutil import parser
 from datetime import timedelta, datetime
 from urlparse import urlparse
+
+from .env import env_load_yaml
 
 
 class ContextDecorator(object):
@@ -41,6 +44,7 @@ def url_for_boto_key(key):
         name=key.name
     )
 
+
 def md5sum_with_size(iterable):
     '''
     Get md5sum and size given an iterable (eg: a boto key)
@@ -51,6 +55,7 @@ def md5sum_with_size(iterable):
         md5.update(chunk)
         size += len(chunk)
     return md5.hexdigest(), size
+
 
 def cancel_stale_multiparts(bucket, stale_days=7):
     '''
@@ -71,6 +76,8 @@ class BotoManager(object):
     connect_s3, it will maintain connections to all of those hosts
     which can be used transparently through this object.
     """
+
+    ENV_VAR_CONFIG = 'GDC_STORAGE_CONFIG'
 
     def __init__(self, config, lazy=False):
         """
@@ -95,6 +102,18 @@ class BotoManager(object):
         self.conns = {}
         if not lazy:
             self.connect()
+
+    @classmethod
+    def from_environment(cls, key=ENV_VAR_CONFIG, *args, **kwargs):
+        """Load env variable with yaml format
+
+        s3.amazonaws.com:
+          aws_access_key_id: foo
+          aws_secret_access_key: bar
+          is_secure: false
+
+        """
+        return cls(config=env_load_yaml(key), *args, **kwargs)
 
     @property
     def hosts(self):
