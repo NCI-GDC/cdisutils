@@ -114,7 +114,11 @@ class StorageClient(object):
         return self.get_key_from_urls(doc.urls)
 
     def get_key_from_urls(self, urls):
-        """Loop through list of urls to fetch boto key"""
+        """Loop through list of urls to fetch boto key
+
+        :raises: :class:.KeyLookupError if no urls succeeded
+
+        """
 
         remaining_urls = filter_s3_urls(urls)
         if not urls:
