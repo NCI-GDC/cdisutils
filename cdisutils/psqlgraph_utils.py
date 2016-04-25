@@ -6,6 +6,7 @@ cdisutils.psqlgraph_utils
 Holds commonly used PsqlGraph utilities
 """
 
+import os
 
 def add_db_conn_args(parser):
     """Adds args to :param:`parser` for db connection
@@ -18,25 +19,25 @@ def add_db_conn_args(parser):
         '-PD',
         '--pg-database',
         type=str,
-        default='test',
+        default=os.environ.get('PG_DATABASE','test'),
         help='The name of the PostgreSQL database to connect to')
     parser.add_argument(
         '-PH',
         '--pg-host',
         type=str,
-        default='localhost',
+        default=os.environ.get('PG_HOST','localhost'),
         help='The host of the PostgreSQL server')
     parser.add_argument(
         '-PP',
         '--pg-password',
         type=str,
-        default=None,
+        default=os.environ.get('PG_PASS',None),
         help='The password for given user (-u). Prompt if not provided')
     parser.add_argument(
         '-PU',
         '--pg-user',
         type=str,
-        default='test',
+        default=os.environ.get('PG_USER','test'),
         help='The user with which to connect to PostgreSQL')
 
     return parser
