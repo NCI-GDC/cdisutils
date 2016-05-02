@@ -16,7 +16,7 @@ def connect_s3_mock(*args, **kwargs):
 
 class BotoUtilsTest(TestCase):
 
-    @patch("cdisutils.net.connect_s3", connect_s3_mock)
+    @patch("cdisutils.storage.connect_s3", connect_s3_mock)
     def test_basic_connect(self):
         """These tests are admitedly rudimentary. I wanted to use moto but
         moto works by intercepting calls to s3.amazonaws.com, so it
@@ -24,13 +24,13 @@ class BotoUtilsTest(TestCase):
         """
         config = {
             "s3.amazonaws.com": {
-                "secret_access_key": "aws_key",
-                "access_key_id": "secret_key",
+                "aws_secret_access_key": "aws_key",
+                "aws_access_key_id": "secret_key",
                 "is_secure": True,
             },
             "s3.myinstallation.org": {
-                "secret_access_key": "my_key",
-                "access_key_id": "my_secret_key",
+                "aws_secret_access_key": "my_key",
+                "aws_access_key_id": "my_secret_key",
                 "is_secure": False,
             },
         }
@@ -42,17 +42,17 @@ class BotoUtilsTest(TestCase):
         self.assertEqual(site_conn_mock.host, "s3.myinstallation.org")
         self.assertEqual(site_conn_mock.is_secure, False)
 
-    @patch("cdisutils.net.connect_s3", connect_s3_mock)
+    @patch("cdisutils.storage.connect_s3", connect_s3_mock)
     def test_get_url(self):
         config = {
             "s3.amazonaws.com": {
-                "secret_access_key": "aws_key",
-                "access_key_id": "secret_key",
+                "aws_secret_access_key": "aws_key",
+                "aws_access_key_id": "secret_key",
                 "is_secure": True,
             },
             "s3.myinstallation.org": {
-                "secret_access_key": "my_key",
-                "access_key_id": "my_secret_key",
+                "aws_secret_access_key": "my_key",
+                "aws_access_key_id": "my_secret_key",
                 "is_secure": False,
             },
         }
@@ -100,4 +100,3 @@ class BotoUtilsTest(TestCase):
             (md5, size) = md5sum_with_size(key)
             assert size == key.size
             assert md5 == key.md5
-
