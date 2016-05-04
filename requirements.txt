@@ -1,4 +1,4 @@
 apache-libcloud==0.15.1
-boto==2.36.0
+boto>=2.36.0
 python-dateutil==2.4.2
 -e git+ssh://git@github.com/NCI-GDC/python-signpostclient.git@ebc91a5f8343e8f4cb2caefc523b9ad3a1eb7c6c#egg=signpostclient
