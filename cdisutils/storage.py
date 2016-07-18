@@ -196,21 +196,25 @@ class BotoManager(object):
     def __getitem__(self, host):
         return self.get_connection(host)
 
-    def get_connection(self, host):
-        matched = {
+    def harmonize_host(self, host):
+        matches = {
             alias: aliased_host
             for alias, aliased_host in self.host_aliases.iteritems()
             if re.match(alias, host)
         }
 
-        if len(matched) > 1:
-            self.log.warning('matched multiple aliases: {}'.format(matched))
+        if len(matches) > 1:
+            self.log.warning('matched multiple aliases: {}'.format(matches))
 
-        if matched:
-            self.log.info('using matched aliases: {}'.format(matched.keys()))
-            return self.conns[next(matched.itervalues())]
+        if matches:
+            self.log.info('using matched aliases: {}'.format(matches.keys(
+            )))
+            return next(matches.itervalues())
         else:
-            return self.conns[host]
+            return host
+
+    def get_connection(self, host):
+        return self.conns[self.harmonize_host(host)]
 
     def get_url(self, url):
         """
