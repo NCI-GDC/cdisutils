@@ -3,4 +3,4 @@ moto==0.4.1
 nose==1.3.7
 mock==1.3.0
 python-novaclient==3.2.0
--e git+ssh://git@github.com/NCI-GDC/signpost.git@9d48b163d47cf059b9ba38a1b4562b2809f4ad2e#egg=signpost
+-e git+https://github.com/NCI-GDC/signpost.git@9d48b163d47cf059b9ba38a1b4562b2809f4ad2e#egg=signpost
