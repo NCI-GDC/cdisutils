@@ -84,15 +84,20 @@ def main(parser=None):
     args = parser.parse_args()
     tailer = create_tailer(args)
 
+    last_host = None
+
     # Poll ssh connections for logs!
     for host, filename, line in tailer.tail():
         line = textwrap.fill(line, width=args.width, subsequent_indent='\t')
         host = colored(host, 'green')
         filename = colored(filename, 'blue', attrs=['bold'])
 
-        header = '{:30s}  {}'.format(host, filename)
+        if host != last_host:
+            last_host = host
+            header = '{:30s}  {}'.format(host, filename)
+            print('\n' + header)
 
-        print('\n' + header + '\n\t' + line)
+        print('\t' + line)
 
 
 if __name__ == '__main__':
