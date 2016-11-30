@@ -6,4 +6,7 @@ setup(
     description="Miscellaneous utilities useful for interaction with CDIS systems.",
     license="Apache",
     packages=["cdisutils"],
+    install_requires=[
+        'xmltodict==0.9.2',
+    ],
 )
