@@ -8,5 +8,7 @@ setup(
     packages=["cdisutils"],
     install_requires=[
         'xmltodict==0.9.2',
+        'pyOpenSSL==16.2.0',
+        'ndg-httpsclient==0.4.2'
     ],
 )
