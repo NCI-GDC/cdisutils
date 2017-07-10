@@ -218,10 +218,3 @@ class dbGaPXReferencer(object):
                    "Please try again later.")
             self.logger.exception(e)
             raise InternalError(msg)
-
-        study_handle = xml['DbGap']['Study']['@study_handle']
-        if study_handle != project_code:
-            msg = ("Project exists in dbGaP but has a differnt "
-                   "'study_handle' from the 'code' you provided. "
-                   "'{}' != '{}'".format(study_handle, project_code))
-            raise UserError(msg)
