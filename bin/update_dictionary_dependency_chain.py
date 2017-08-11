@@ -27,11 +27,14 @@ python update_dictionary_dependency_chain.py \ #
     downstream                               \ # don't update datamodel
     chore/bump-deps                          \ # push on this branch
     dictionary_commit                        \ # change to this dictionary commit
-    --datemodel datamodel_commit               # change to this datamodel commit
+    datamodel_commit                           # change to this datamodel commit
 ```
 
 Note: you can set the OPEN_CMD environment variable to a browser to
-open remote urls in.
+open remote urls in. On a mac this just works, don't mess with setting the OPEN_CMD
+
+Order matters for the arguments! Here's an example:
+python update_dictionary_dependency_chain.py downstream chore/bump_pins_for_unicode 6a8ddf96ad59b44163c5091d80e04245db4a6e9a 0b9db97dca093241b66836aa5da223adb68f3310
 """
 
 
@@ -54,6 +57,10 @@ DEPENDENCY_MAP = {
     'gdcapi': ['requirements.txt'],
     'zugs': ['setup.py'],
     'esbuild': ['requirements.txt'],
+    'runners': ['setup.py'],
+    'auto-qa': ['requirements.txt'],
+    'authoriation': ['auth_server/requirements.txt'],
+    'legacy-import': ['setup.py']
 }
 
 
@@ -62,6 +69,10 @@ REPO_MAP = {
     'gdcapi': 'git@github.com:NCI-GDC/gdcapi.git',
     'zugs': 'git@github.com:NCI-GDC/zugs.git',
     'esbuild': 'git@github.com:NCI-GDC/esbuild.git',
+    'runners': 'git@github.com:NCI-GDC/runners.git',
+    'auto-qa': 'git@github.com:NCI-GDC/auto-qa.git',
+    'authoriation': 'git@github.com:NCI-GDC/authoriation.git',
+    'legacy-import': 'git@github.com:NCI-GDC/legacy-import.git',
 }
 
 
@@ -105,6 +116,8 @@ def replace_dep_in_file(path, pattern, repl):
     with open(path, 'w') as updated:
         updated.write(data)
 
+def get_base_branch(repo):
+    pass
 
 def checkout_fresh_branch(repo, name):
     cwd = os.getcwd()
@@ -188,8 +201,7 @@ def main():
                         choices=['datamodel', 'downstream'])
     parser.add_argument('branch', help='branch to push bump as')
     parser.add_argument('dictionary_commit', help='commit of dictionary')
-    parser.add_argument('--datamodel', required=False,
-                        help='commit of dictionary')
+    parser.add_argument('datamodel', help='commit of datamodel')
 
     args = parser.parse_args()
 
