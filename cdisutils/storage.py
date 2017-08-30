@@ -150,7 +150,11 @@ class BotoManager(object):
 
     log = get_logger('boto_manager')
 
-    def __init__(self, config, lazy=False, host_aliases={}):
+    def __init__(self,
+                 config={},
+                 lazy=False,
+                 host_aliases={},
+                 stream_status=False):
         """
         Config map should be a map from hostname to args, e.g.:
         {
@@ -181,6 +185,34 @@ class BotoManager(object):
         self.conns = {}
         if not lazy:
             self.connect()
+
+        self.s3_inst_info = {
+            'ceph': {
+                'secure': True,
+                'url': 'ceph.service.consul',
+                'access_key': "",
+                'secret_key': ""
+            },
+            'ceph2': {
+                'secure': True,
+                'url': 'gdc-cephb-objstore.osdc.io',
+                'access_key': "",
+                'secret_key': ""
+            },
+            'cleversafe': {
+                'secure': True,
+                'url': 'gdc-accessors.osdc.io',
+                'access_key': "",
+                'secret_key': ""
+            }
+        }
+        self.stream_status = stream_status
+
+        # magic number here for multipart chunk size, change with care
+        self.mp_chunk_size = 1073741824 # 1GiB
+
+        # semi-magic number here, worth playing with if speed issues seen
+        self.chunk_size = 16777216
 
     @property
     def hosts(self):
@@ -230,6 +262,281 @@ class BotoManager(object):
         bucket = self.get_connection(host).get_bucket(bucket)
         return bucket.get_key(key)
 
+    def list_buckets(self, host=None):
+        total_files = 0
+        if host:
+            if host in self.conns:
+                bucket_list = self.conns[host].get_all_buckets()
+                for bucket in bucket_list:
+                    file_count, bucket_size = self.get_count_of_keys_in_s3_bucket(conn, bucket.name)
+                    self.log.info(bucket.name, file_count)
+                    total_files = total_files + file_count
+
+                self.log.info("{} files in {} buckets".format(total_files, len(bucket_list)))
+            else:
+                self.log.error("No connection to host {} found".format(host))
+        else:
+            self.log.error("No host given")
+
+    def get_s3_bucket(self, host=None, bucket_name=None):
+        bucket = None
+        if host:
+            if host in self.conns:
+                try:
+                    self.log.info("Getting bucket {} from {}".format(bucket_name, host))
+                    bucket = self.conns[host].get_bucket(bucket_name)
+                except Exception as e:
+                    if e.error_code == 'NoSuchBucket':
+                        print 'Bucket not found'
+                    else:
+                        self.log.error(e)
+            else:
+                self.log.error("No connection to host {} found".format(host))
+        else:
+            self.log.error("No host given")
+
+        self.log.info("Returning {}".format(bucket))
+        return bucket
+
+    def upload_file(self, host=None,
+                    bucket_name=None,
+                    file_name=None,
+                    key_name=None,
+                    calc_md5=False):
+        if calc_md5:
+            md5_sum = md5.new()
+
+        bucket = self.get_s3_bucket(host=host, bucket_name=bucket_name)
+        if not bucket:
+            bucket = self.conns[host].create_bucket(bucket_name)
+
+        new_key = Key(bucket)
+        self.log.info("Creating key: {}".format(key_name))
+        new_key.key = key_name
+        new_key.set_contents_from_filename(file_name)
+
+    def get_all_s3_files(self):
+        all_s3_files = {}
+        for s3_inst in self.s3_inst_info.keys():
+            try:
+                cs_conn = self.connect_to_s3(s3_inst)
+            except:
+                self.log.warn("Unable to connect to %s, skipping" % s3_inst)
+            else:
+                self.log.info("Connected to S3, cs_conn = ", cs_conn)
+                if cs_conn != None:
+                    all_s3_files[s3_inst] = self.get_s3_file_counts(cs_conn, s3_inst)
+        return all_s3_files
+
+    def get_all_bucket_names(self, host=None):
+        bucket_names = []
+        try:
+            bucket_list = conn.get_all_buckets()
+        except Exception as e:
+            self.log.error("Unable to list buckets: %s" % e)
+        else:
+            for instance in bucket_list:
+                bucket_names.append(instance.name)
+        return bucket_names
+
+    def print_running_status(self, transferred_bytes, start_time):
+        size_info = self.get_nearest_file_size(transferred_bytes)
+        cur_time = time.clock()
+        base_transfer_rate = float(transferred_bytes) / float(cur_time - start_time)
+        transfer_info = self.get_nearest_file_size(base_transfer_rate)
+        cur_conv_size = float(transferred_bytes) / float(size_info[0])
+        cur_conv_rate = base_transfer_rate / float(transfer_info[0])
+        sys.stdout.write("%7.02f %s : %6.02f %s per sec\r" % (
+            cur_conv_size, size_info[1],
+            cur_conv_rate, transfer_info[1]))
+        sys.stdout.flush()
+
+    def get_file_key(self, host=None,
+                     bucket_name=None,
+                     key_name=None):
+        key = None
+        bucket = self.get_s3_bucket(host=host, bucket_name=bucket_name)
+        if bucket:
+            self.log.info("Getting key {}".format(key_name))
+            key = bucket.get_key(key_name)
+
+        return key
+
+    def load_file(self,
+                  uri=None,
+                  host=None,
+                  bucket_name=None,
+                  key_name=None,
+                  stream_status=False,
+                  chunk_size=16777216):
+
+        downloading = True
+        error = False
+        file_data = bytearray()
+        total_transfer = 0
+        chunk = []
+        if uri:
+            uri_data = urlparse(uri)
+            host = uri_data.netloc
+            os_name = uri_data.netloc.split('.')[0]
+            bucket_name = uri_data.path.split('/')[1]
+            key_name = uri_data.path.split('/')[-1]
+
+        if not self.conns[host]:
+            self.log.info("Making OS connections")
+            conn = self.connect()
+        else:
+            conn = self.conns[host]
+
+        # get the key from the bucket
+        self.log.info("Getting {} from {}".format(key_name, bucket_name))
+        try:
+            file_key = self.get_file_key(host=host,
+                                         bucket_name=bucket_name,
+                                         key_name=key_name)
+        except Exception as e:
+            self.log.error("Unable to get {} from {}".format(key_name, bucket_name))
+            self.log.error(e)
+        else:
+            if file_key:
+                while downloading == True:
+                    try:
+                        chunk = file_key.read(size=chunk_size)
+                    except Exception as e:
+                        error = True
+                        downloading = False
+                        self.log.error("Error {} reading bytes, got {} bytes".format(
+                            str(e), len(chunk)))
+                        total_transfer = total_transfer + len(chunk)
+                    else:
+                        if len(chunk) < chunk_size:
+                            downloading = False
+                        total_transfer += len(chunk)
+                        file_data.extend(chunk)
+                        if stream_status:
+                            sys.stdout.write("{:6.02}%%\r".format(
+                                float(total_transfer) / float(file_key.size) * 100.0))
+                            sys.stdout.flush()
+            else:
+                self.log.warn('Unable to find key {}/{}/{}'.format(os_name, bucket_name, key_name))
+
+        self.log.info('{} lines received'.format(len(str(file_data))))
+        return str(file_data)
+
+    
+    def parse_data_file(self,
+                        uri=None,
+                        data_type='tsv',
+                        custom_delimiter=None):
+        """Processes loaded data as a tsv, csv, or
+        json, returning it as a list of dicts"""
+        key_data = []
+        header = None
+        skipped_lines = 0
+        delimiters = { 'tsv': '\t',
+                       'csv': ',',
+                       'json': '',
+                       'other': ''}
+        other_delimiters = [' ', ',', ';']
+
+        file_data = self.load_file(uri=uri)
+
+        if data_type not in delimiters.keys():
+            print "Unable to process data type %s" % data_type
+            print "Valid data types:"
+            print delimiters.keys()
+        else:
+            if data_type == 'other':
+                if custom_delimiter:
+                    delimiter = custom_delimiter
+                else:
+                    print "With data_type 'other', a delimiter is needed"
+                    raise
+            else:
+                delimiter = delimiters[data_type]
+
+            if data_type == 'json':
+                for line in file_data.split('\n'):
+                    line_data = json.loads(line)
+                    key_data.append(line_data)
+            # load as tsv/csv, assuming the first row is the header
+            # that provides keys for the dict
+            else:
+                for line in file_data.split('\n'):
+                    if delimiter in line:
+                        if len(line.strip('\n').strip()):
+                            if not header:
+                                header = line.strip('\n').split(delimiter)
+                            else:
+                                line_data = dict(zip(header, line.strip('\n')\
+                                                            .split(delimiter)))
+                                key_data.append(line_data)
+                    else:
+                        # ok, let's see if we can be smart here
+                        #if not header:
+                        #    remaining_chars = set([c for c in line if not c.isalnum()])
+                        skipped_lines += 1
+
+        print '%d lines in file, %d processed' % (len(file_data.split('\n')), len(key_data))
+        return key_data
+
+    def md5_s3_key(self, conn, which_bucket, key_name, chunk_size=16777216):
+        result = {
+            'transfer_time': 0,
+            'bytes_transferred': 0
+        }
+        m = md5.new()
+        sha = hashlib.sha256()
+        size = 0
+        retries = 0
+        result['start_time'] = time.time()
+        error = False
+        running = False
+        file_key = self.get_file_key(conn, which_bucket, key_name)
+        if file_key:
+            running = True
+            file_key.BufferSize = self.chunk_size
+        else:
+            self.log.warning("Unable to find key %s %s" % (which_bucket, key_name))
+
+        while running == True:
+            try:
+                #chunk = file_key.read()
+                chunk = file_key.read(size=chunk_size)
+            except:
+                if len(chunk) == 0:
+                    if retries > 10:
+                        print "Error reading bytes"
+                        error = True
+                        break
+                    else:
+                        retries += 1
+                        print "%d: Error reading bytes, retry %d" % (id, retries)
+                        time.sleep(2)
+                else:
+                    print "%d: Error %s reading bytes, got %d bytes" % (
+                        id, str((sys.exc_info())[1]), len(chunk))
+                    total_transfer = total_transfer + len(chunk)
+                    m.update(chunk)
+                    sha.update(chunk)
+                    retries = 0
+            else:
+                if len(chunk) == 0:
+                    running = False
+                result['bytes_transferred'] += len(chunk)
+                if file_key.size > 0:
+                   sys.stdout.write("%6.02f%%\r" % (float(result['bytes_transferred']) / float(file_key.size) * 100.0))
+                else:
+                   sys.stdout.write("0.00%%\r")
+
+                sys.stdout.flush()
+                m.update(chunk)
+                sha.update(chunk)
+                retries = 0
+        result['transfer_time'] = time.time() - result['start_time']
+        result['md5_sum'] = m.hexdigest()
+        result['sha256_sum'] = sha.hexdigest()
+        return result
 
 def is_probably_swift_segments(obj):
     """The way OpenStack swift works is that you can't upload anything
