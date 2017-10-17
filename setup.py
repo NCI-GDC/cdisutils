@@ -10,7 +10,7 @@ setup(
         'setuptools==30.1.0',
         'xmltodict==0.9.2',
         'pyOpenSSL==16.2.0',
-        'ndg-httpsclient==0.4.2',
-        'openpyxl==2.4.0'
+        'openpyxl==2.4.0',
+        'ndg-httpsclient==0.4.3'
     ],
 )
