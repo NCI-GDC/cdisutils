@@ -1,4 +1,4 @@
 xmltodict==0.9.2
 boto>=2.36.0
 python-dateutil==2.4.2
--e git+https://github.com/NCI-GDC/python-signpostclient@ebc91a5f8343e8f4cb2caefc523b9ad3a1eb7c6c#egg=signpostclient
+-e git+https://github.com/NCI-GDC/python-signpostclient@ca686f55772e9a7f839b4506090e7d2bb0de5f15#egg=signpostclient
