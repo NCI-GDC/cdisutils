@@ -2,7 +2,7 @@ from setuptools import setup
 
 setup(
     name="cdisutils",
-    version="0.1.0",
+    version="0.1.1",
     description="Miscellaneous utilities useful for interaction with CDIS systems.",
     license="Apache",
     packages=["cdisutils"],
@@ -10,6 +10,7 @@ setup(
         'setuptools==30.1.0',
         'xmltodict==0.9.2',
         'pyOpenSSL==16.2.0',
-        'ndg-httpsclient==0.4.2'
+        'ndg-httpsclient==0.4.2',
+        'openpyxl==2.4.0'
     ],
 )
