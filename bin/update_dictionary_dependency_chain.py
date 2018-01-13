@@ -91,8 +91,8 @@ REPO_MAP = {
 # edit this if you want to change each branch manually, otherwise
 # just use the command line arg default_base_branch
 BASE_BRANCH_MAP = {
-    'gdcdatamodel': 'a31edc57056eaf7d71433773d4f030ad0303c1e3',
-    'gdcapi': '4ce0f783a736cc8021cb676aaf809e0cfff621cb',
+    'gdcdatamodel': 'origin/master',
+    'gdcapi': 'origin/master',
     'zugs': 'origin/develop',
     'esbuild': 'origin/develop',
     'runners': 'origin/develop',
