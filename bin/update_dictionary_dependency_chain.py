@@ -146,7 +146,7 @@ def replace_dep_in_file(path, pattern, repl):
     with open(path, 'w') as updated:
         updated.write(data)
 
-def get_b_idase_branch(repo):
+def get_base_branch(repo):
     if repo in BASE_BRANCH_MAP:
         return BASE_BRANCH_MAP[repo]
     else:
