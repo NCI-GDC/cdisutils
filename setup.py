@@ -7,7 +7,7 @@ setup(
     license="Apache",
     packages=["cdisutils"],
     install_requires=[
-        'setuptools==30.1.0',
+        'setuptools',
         'xmltodict==0.9.2',
         'pyOpenSSL==16.2.0',
         'openpyxl==2.4.0',
