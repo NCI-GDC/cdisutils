@@ -24,12 +24,15 @@ Usage: There are 4.5 steps
    in step 1.5. Go fight travis.
 
 First(1) step
+Run `python update_dictionary_dependency_chain.py --help` to get more info
 
 ```bash
 python update_dictionary_dependency_chain.py \ #
     --target datamodel                             \ # only update datamodel
     --branch chore/bump-deps                       \ # push on this branch
-    --dictionary_commit SHA1                         # change to this dictionary commit
+    --dictionary_commit SHA1                       \ # change to this dictionary commit
+    --open_browser                                 \ # Optional: open repo in browser after commit
+    --dry_run                                        # Optional: dry run, simply create branches, do not push them
 ```
 
 Second(2) step
@@ -39,7 +42,9 @@ python update_dictionary_dependency_chain.py \ #
     --target downstream                            \ # don't update datamodel
     --branch chore/bump-deps                       \ # push on this branch
     --dictionary_commit SHA1                       \ # change to this dictionary commit
-    --datamodel_commit  SHA1                         # change to this datamodel commit
+    --datamodel_commit  SHA1                       \ # change to this datamodel commit
+    --open_browser                                 \ # Optional: open repo in browser after commit
+    --dry_run                                        # Optional: dry run, simply create branches, do not push them
 ```
 
 Note: you can set the OPEN_CMD environment variable to a browser to
@@ -71,7 +76,6 @@ DEPENDENCY_MAP = {
     'zugs': ['setup.py'],
     'esbuild': ['requirements.txt'],
     'runners': ['setup.py'],
-    'auto-qa': ['requirements.txt'],
     'authorization': ['auth_server/requirements.txt'],
     'legacy-import': ['setup.py']
 }
@@ -83,7 +87,6 @@ REPO_MAP = {
     'zugs': 'git@github.com:NCI-GDC/zugs.git',
     'esbuild': 'git@github.com:NCI-GDC/esbuild.git',
     'runners': 'git@github.com:NCI-GDC/runners.git',
-    'auto-qa': 'git@github.com:NCI-GDC/auto-qa.git',
     'authorization': 'git@github.com:NCI-GDC/authorization.git',
     'legacy-import': 'git@github.com:NCI-GDC/legacy-import.git',
 }
