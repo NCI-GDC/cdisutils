@@ -14,7 +14,7 @@ from boto import connect_s3
 from boto.s3 import connection
 from dateutil import parser
 from datetime import timedelta, datetime
-from signpostclient import SignpostClient
+from indexclient.client import IndexClient
 from urlparse import urlparse
 
 import hashlib
@@ -74,33 +74,33 @@ class StorageClient(object):
 
     log = get_logger('storage_client')
 
-    def __init__(self, signpost_client, boto_manager):
+    def __init__(self, indexd_client, boto_manager):
         """Constructs a StorageClient
 
-        :param signpost_client:
-            DID resolver SignpostClient object or similar interface
+        :param indexd_client:
+            DID resolver IndexdClient object or similar interface
         :param s3_config:
             BotoManager or config for BotoManager
 
         """
-        self.signpost_client = signpost_client
+        self.indexd_client = indexd_client
         self.boto_manager = boto_manager
 
     @classmethod
-    def from_configs(cls, signpost_client, boto_manager, **kwargs):
+    def from_configs(cls, indexd_client, boto_manager, **kwargs):
         return cls(
-            signpost_client=SignpostClient(**signpost_client),
+            indexd_client=IndexClient(**indexd_client),
             boto_manager=BotoManager(**boto_manager),
             **kwargs
         )
 
-    def get_signpost_record(self, uuid):
-        """Fetch Signpost doc from uuid"""
+    def get_indexd_record(self, uuid):
+        """Fetch Indexd doc from uuid"""
 
-        doc = self.signpost_client.get(uuid)
+        doc = self.indexd_client.get(uuid)
 
         if not doc:
-            raise KeyLookupError('Signpost record not found: {}'.format(uuid))
+            raise KeyLookupError('Indexd record not found: {}'.format(uuid))
 
         if not doc.urls:
             raise KeyLookupError("No urls found for '{}'".format(uuid))
@@ -110,7 +110,7 @@ class StorageClient(object):
     def get_key_from_uuid(self, uuid):
         """Returns a boto key given a uuid"""
 
-        doc = self.get_signpost_record(uuid)
+        doc = self.get_indexd_record(uuid)
         return self.get_key_from_urls(doc.urls)
 
     def get_key_from_urls(self, urls):
