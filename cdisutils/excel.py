@@ -116,18 +116,10 @@ def read_sheet(ws=None, num_headers=1):
             ]
     """
     sheet_data = []
-    header = None
-    if num_headers > 2:
-        log.info("Sorry, can only process 2 or fewer header rows")
-        return sheet_data
-
-    if num_headers > 1:
-        header_combine = True
     log.info("{} rows in sheet".format(ws.max_row))
     # NOTE: Saving the generator object in a variable, because accessing the
     # 'rows' property will always return a fresh generator
     rows = ws.rows
-
     header = read_headers(rows, num_headers)
 
     for row in rows:
@@ -159,8 +151,6 @@ def load_spreadsheet_from_s3(boto_man=None,
     s3_loc =  urlparts.netloc.split('.')[0]
     bucket = urlparts.path.split('/')[1]
     key_name = urlparts.path.split('/')[-1]
-
-
 
     # This is a bit tricky here. openpyxl likes a file, so we're
     # tricking it a bit by loading the data first, because we want to
