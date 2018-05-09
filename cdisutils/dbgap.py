@@ -21,6 +21,7 @@ PHSID_REGEX = re.compile('(phs\d+.v)(\d)(.*)')
 
 COMPLETE_STATE = ['released', 'completed_by_gpa']
 
+
 class dbGaPXReferencer(object):
 
     #: The url from which to pull telemetry reports for project with given
