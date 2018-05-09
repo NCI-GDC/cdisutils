@@ -4,19 +4,10 @@ Test suite for utils that interact with the storage system
 """
 
 from cdisutils.storage import StorageClient
-from cdisutils.indexd_utils import IndexdTestHelper
 
 import pytest
 
 INDEXD_CONFIG = dict(host='localhost', port=8000, auth=())
-
-
-@pytest.yield_fixture(scope='module', autouse=True)
-def indexd():
-    indexd = IndexdTestHelper.run_indexd()
-    yield indexd
-    if indexd.is_alive:
-        indexd.terminate()
 
 
 @pytest.fixture
