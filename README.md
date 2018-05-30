@@ -1,4 +1,4 @@
-# cdisutils
+# cdisutils [![Build Status](https://travis-ci.org/NCI-GDC/cdisutils.svg?branch=develop)](https://travis-ci.org/NCI-GDC/cdisutils)
 
 Various utilities useful for working on cdis systems.
 
