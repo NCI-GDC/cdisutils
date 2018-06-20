@@ -1,6 +1,6 @@
 xmltodict==0.11.0
 boto>=2.36.0
-python-dateutil==2.4.2
+python-dateutil==2.7.3
 -e git+https://git@github.com/uc-cdis/indexclient.git@1.5.1#egg=indexclient
 -e git+https://github.com/uc-cdis/cdis-python-utils.git@0.2.8#egg=cdispyutils # required by indexd
 -e git+https://github.com/uc-cdis/doiclient.git@1.0.0#egg=doiclient
