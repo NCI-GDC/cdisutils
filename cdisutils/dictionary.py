@@ -23,6 +23,7 @@ def sort_dict(tree, remove_keys=None):
     else:
         return tree
 
+
 def remove_keys_from_dict(tree, remove_keys):
     """
     Recursively remove keys from dictionary tree
