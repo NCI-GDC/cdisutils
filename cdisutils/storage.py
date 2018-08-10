@@ -158,7 +158,7 @@ class BotoManager(object):
         """
         Config map should be a map from hostname to args, e.g.:
         {
-            "s3.amazonaws.com": {
+            "cleversafe.service.consul: {
                 "aws_access_key_id": "foo",
                 "aws_secret_access_key": "bar",
                 "is_secure": False,
@@ -169,7 +169,7 @@ class BotoManager(object):
         :param host_aliases:
             A *REGEX* map from names that match the regex to hostnames
             provided in config
-            e.g. ``{'aws\.accesssor1\.mirror': 's3.amazonaws.com'}``
+            e.g. ``{'aws\.accessor1\.mirror': 'cleversafe.service.consul'}``
         """
 
         self.config = config
