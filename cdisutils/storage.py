@@ -9,6 +9,7 @@ TODO: add tests
 
 """
 
+import sys
 from .log import get_logger
 from boto import connect_s3
 from boto.s3 import connection
@@ -20,6 +21,7 @@ from urlparse import urlparse
 import hashlib
 import json
 import re
+import time
 
 # TODO: add tests
 
@@ -43,6 +45,82 @@ def md5sum_with_size(iterable):
         md5.update(chunk)
         size += len(chunk)
     return md5.hexdigest(), size
+
+
+def checksum_key(file_key=None,
+                 chunk_size=16777216,
+                 num_retries=10,
+                 sleep_time=2,
+                 stream_status=False,
+                 tag_id=0):
+    '''
+    Get checksum and size given an iterable
+    Args:
+        key - iterable key to get data from
+        chunk_size - size (in bytes) to read from iterable per loop
+        num_retries - how many times to retry a read before giving up
+        sleep_time - how long to sleep per retry (in seconds)
+        stream_status - stream status output to stdout
+        tag_id - ID to print for stream status (useful for threaded output)
+
+    Return a dict:
+        {'sha256': u'sha256_val',
+         'md5sum': u'md5sum_val', 
+         'transfer_time': time.time for checksum,
+         'bytes_transferred': N
+    '''
+
+    result = {'bytes_transferred': 0,
+              'start_time': time.time()}
+    m = hashlib.md5()
+    sha = hashlib.sha256()
+    size = 0
+    retries = 0
+    running = True
+    log = get_logger('storage_client')
+    log.info('{}: running for {} with stream_status = {}'.format(tag_id,
+                                                                 file_key,
+                                                                 stream_status))
+    while running == True:
+        try:
+            chunk = file_key.read(size=chunk_size)
+        except Exception as e:
+            if chunk: 
+                if len(chunk) == 0:
+                    if retries > num_retries:
+                        log.error("{}: Error reading bytes, retries exceeded".format(tag_id))
+                        break
+                    else:
+                        retries += 1
+                        log.warn("{}: Error reading bytes, retry {}".format(tag_id, retries))
+                        time.sleep(sleep_time)
+                else:
+                    log.error("{}: Error {} reading bytes, got {} bytes".format(
+                        tag_id, str((sys.exc_info())[1]), len(chunk)))
+                    total_transfer = total_transfer + len(chunk)
+                    m.update(chunk)
+                    sha.update(chunk)
+                    retries = 0
+            else:
+                log.error('{}: Unable to read chunk: {}'.format(tag_id, e))
+                break
+        else:
+            if len(chunk) == 0:
+                running = False
+            result['bytes_transferred'] += len(chunk)
+            if stream_status:
+                sys.stdout.write("{}: {:6.02f}%\r".format(tag_id,
+                                                          float(result['bytes_transferred']) / 
+                                                          float(file_key.size) * 100.0))
+                sys.stdout.flush()
+            m.update(chunk)
+            sha.update(chunk)
+            retries = 0
+    result['transfer_time'] = time.time() - result['start_time']
+    result['md5_sum'] = m.hexdigest()
+    result['sha256_sum'] = sha.hexdigest()
+
+    return result
 
 
 def cancel_stale_multiparts(bucket, stale_days=7):
@@ -180,7 +258,14 @@ class BotoManager(object):
             if 'calling_format' not in kwargs:
                 kwargs["calling_format"] = connection.OrdinaryCallingFormat()
 
-        self.host_aliases = host_aliases
+        if len(host_aliases):
+            self.host_aliases = host_aliases
+        else:
+            self.host_aliases = {
+                'gdc-accessor.\.osdc.io': 'cleversafe.service.consul',
+                'ceph-1.service.consul': 'ceph.service.consul',
+                'ceph-2.service.consul': 'gdc-cephb-objstore.osdc.io',
+            }
 
         self.conns = {}
         if not lazy:
