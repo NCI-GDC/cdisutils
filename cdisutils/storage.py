@@ -9,22 +9,32 @@ TODO: add tests
 
 """
 
-from .log import get_logger
-from boto import connect_s3
-from boto.s3 import connection
-from dateutil import parser
-from datetime import timedelta, datetime
-from indexclient.client import IndexClient
-from urlparse import urlparse
-
+import os
+import sys
 import hashlib
 import json
 import re
+import time
+from cStringIO import StringIO as BIO
+from urlparse import urlparse
+from datetime import timedelta, datetime
+
+from boto import connect_s3
+from boto.s3 import connection
+from boto.s3.key import Key
+from dateutil import parser
+
+from indexclient.client import IndexClient
+
+from .log import get_logger
 
 # TODO: add tests
 
+DEFAULT_MP_CHUNK_SIZE = 1073741824 # 1GiB
+DEFAULT_DOWNLOAD_CHUNK_SIZE = 16777216 # 16MiB
 
 def url_for_boto_key(key):
+    ''' Create standardized URL '''
     template = "s3://{host}/{bucket}/{name}"
     return template.format(
         host=key.bucket.connection.host,
@@ -32,18 +42,14 @@ def url_for_boto_key(key):
         name=key.name
     )
 
-
 def md5sum_with_size(iterable):
-    '''
-    Get md5sum and size given an iterable (eg: a boto key)
-    '''
-    md5 = hashlib.md5()
+    ''' Get md5sum and size given an iterable (eg: a boto key) '''
+    md5sum = hashlib.md5()
     size = 0
     for chunk in iterable:
-        md5.update(chunk)
+        md5sum.update(chunk)
         size += len(chunk)
-    return md5.hexdigest(), size
-
+    return md5sum.hexdigest(), size
 
 def cancel_stale_multiparts(bucket, stale_days=7):
     '''
@@ -56,38 +62,39 @@ def cancel_stale_multiparts(bucket, stale_days=7):
         if (datetime.now(initiated.tzinfo) - initiated) > timedelta(days=stale_days):
             upload.cancel_upload()
 
-
 def filter_s3_urls(urls):
+    ''' Filter out non-s3 URLs '''
     return [url for url in urls if urlparse(url).scheme == 's3']
 
-
 class StorageError(Exception):
+    ''' StorageError Class - bypass '''
     pass
-
 
 class KeyLookupError(LookupError, StorageError):
+    ''' KeyLookupError Class - bypass '''
     pass
 
-
 class StorageClient(object):
-    """Class that abstracts away storage interfaces, UUID resolution"""
+    ''' Class that abstracts away storage interfaces, UUID resolution '''
 
     log = get_logger('storage_client')
 
     def __init__(self, indexd_client, boto_manager):
-        """Constructs a StorageClient
+        '''
+        Constructs a StorageClient
 
         :param indexd_client:
             DID resolver IndexdClient object or similar interface
         :param s3_config:
             BotoManager or config for BotoManager
 
-        """
+        '''
         self.indexd_client = indexd_client
         self.boto_manager = boto_manager
 
     @classmethod
     def from_configs(cls, indexd_client, boto_manager, **kwargs):
+        ''' ??? '''
         return cls(
             indexd_client=IndexClient(**indexd_client),
             boto_manager=BotoManager(**boto_manager),
@@ -95,8 +102,7 @@ class StorageClient(object):
         )
 
     def get_indexd_record(self, uuid):
-        """Fetch Indexd doc from uuid"""
-
+        ''' fetch indexd doc from uuid '''
         doc = self.indexd_client.get(uuid)
 
         if not doc:
@@ -108,45 +114,45 @@ class StorageClient(object):
         return doc
 
     def get_key_from_uuid(self, uuid):
-        """Returns a boto key given a uuid"""
+        ''' Returns a boto key given a uuid '''
 
         doc = self.get_indexd_record(uuid)
         return self.get_key_from_urls(doc.urls)
 
     def get_key_from_urls(self, urls):
-        """Loop through list of urls to fetch boto key
+        '''
+        Loop through list of urls to fetch boto key
 
         :raises: :class:.KeyLookupError if no urls succeeded
 
-        """
+        '''
 
         remaining_urls = filter_s3_urls(urls)
         if not urls:
-            raise KeyLookupError('No s3 urls found in {}'.format(urls))
-        self.log.debug('using {} s3 of {}'.format(remaining_urls, urls))
+            raise KeyLookupError('No s3 urls found in %s' % urls)
+        self.log.debug('using %s s3 of %s', remaining_urls, urls)
 
         errors = {}
 
         while remaining_urls:
             url = remaining_urls.pop(0)
-            self.log.debug("fetching key: '{}'".format(url))
+            self.log.debug("fetching key: '%s'", url)
 
             try:
                 return self.boto_manager.get_url(url)
-            except Exception as e:
-                self.log.warning("failed to fetch '{}': {}".format(url, e))
-                errors[url] = e
+            except Exception as exception:
+                self.log.warning("failed to fetch '%s': %s", url, exception)
+                errors[url] = exception
 
-        raise KeyLookupError("failed to fetch key from any: {}".format(errors))
-
+        raise KeyLookupError("failed to fetch key from any: %s", errors)
 
 class BotoManager(object):
-    """
+    '''
     A class that abstracts away boto calls to multiple underlying
     object stores. Given a map from hostname -> arguments to
     connect_s3, it will maintain connections to all of those hosts
     which can be used transparently through this object.
-    """
+    '''
 
     log = get_logger('boto_manager')
 
@@ -155,7 +161,7 @@ class BotoManager(object):
                  lazy=False,
                  host_aliases={},
                  stream_status=False):
-        """
+        '''
         Config map should be a map from hostname to args, e.g.:
         {
             "cleversafe.service.consul: {
@@ -170,7 +176,7 @@ class BotoManager(object):
             A *REGEX* map from names that match the regex to hostnames
             provided in config
             e.g. ``{'aws\.accessor1\.mirror': 'cleversafe.service.consul'}``
-        """
+        '''
 
         self.config = config
         for host, kwargs in self.config.iteritems():
@@ -209,26 +215,34 @@ class BotoManager(object):
         self.stream_status = stream_status
 
         # magic number here for multipart chunk size, change with care
-        self.mp_chunk_size = 1073741824 # 1GiB
+        self.mp_chunk_size = DEFAULT_MP_CHUNK_SIZE
 
-        # semi-magic number here, worth playing with if speed issues seen
-        self.chunk_size = 16777216
+        # 16 MiB is used because it was tested for performance, if
+        # speed issues are seen, this is a good value to try and
+        # tweak. Probably good to keep it powers of 2, and an
+        # even interval of the mp_chunk_size above
+        self.chunk_size = DEFAULT_DOWNLOAD_CHUNK_SIZE
 
     @property
     def hosts(self):
+        ''' Get a list of all the hosts '''
         return self.conns.keys()
 
     def connect(self):
+        ''' Connect to all the s3 instances given from config '''
         for host, kwargs in self.config.iteritems():
             self.conns[host] = connect_s3(**kwargs)
 
     def new_connection_to(self, host):
+        ''' Make a new connection to an s3 instance '''
         return connect_s3(**self.config[host])
 
     def __getitem__(self, host):
+        ''' Internal call for getting a connection '''
         return self.get_connection(host)
 
     def harmonize_host(self, host):
+        ''' Harmonize a host name to get one in the list of hosts '''
         matches = {
             alias: aliased_host
             for alias, aliased_host in self.host_aliases.iteritems()
@@ -236,23 +250,23 @@ class BotoManager(object):
         }
 
         if len(matches) > 1:
-            self.log.warning('matched multiple aliases: {}'.format(matches))
+            self.log.warning('matched multiple aliases: %s', matches)
 
         if matches:
-            self.log.info('using matched aliases: {}'.format(matches.keys(
-            )))
+            self.log.info('using matched aliases: %s', matches.keys)
             return next(matches.itervalues())
         else:
             return host
 
     def get_connection(self, host):
+        ''' Get an s3 connection handle '''
         return self.conns[self.harmonize_host(host)]
 
     def get_url(self, url):
-        """
+        '''
         Parse an s3://host/bucket/key formatted url and return the
         corresponding boto Key object.
-        """
+        '''
         parsed_url = urlparse(url)
         scheme = parsed_url.scheme
         if scheme != "s3":
@@ -263,39 +277,38 @@ class BotoManager(object):
         return bucket.get_key(key)
 
     def list_buckets(self, host=None):
-        total_files = 0
+        ''' List all buckets for a given host '''
         if host:
             if host in self.conns:
                 bucket_list = self.conns[host].get_all_buckets()
                 for bucket in bucket_list:
-                    file_count, bucket_size = self.get_count_of_keys_in_s3_bucket(conn, bucket.name)
-                    self.log.info(bucket.name, file_count)
-                    total_files = total_files + file_count
+                    self.log.info(bucket.name)
 
-                self.log.info("{} files in {} buckets".format(total_files, len(bucket_list)))
+                self.log.info("%d buckets", len(bucket_list))
             else:
-                self.log.error("No connection to host {} found".format(host))
+                self.log.error("No connection to host %s found", host)
         else:
             self.log.error("No host given")
 
     def get_s3_bucket(self, host=None, bucket_name=None):
+        ''' Get a handle to an s3 bucket '''
         bucket = None
         if host:
             if host in self.conns:
                 try:
-                    self.log.info("Getting bucket {} from {}".format(bucket_name, host))
+                    self.log.info("Getting bucket %s from %s", bucket_name, host)
                     bucket = self.conns[host].get_bucket(bucket_name)
-                except Exception as e:
-                    if e.error_code == 'NoSuchBucket':
+                except Exception as exception:
+                    if exception.error_code == 'NoSuchBucket':
                         print 'Bucket not found'
                     else:
-                        self.log.error(e)
+                        self.log.error(exception)
             else:
-                self.log.error("No connection to host {} found".format(host))
+                self.log.error("No connection to host %s found", host)
         else:
             self.log.error("No host given")
 
-        self.log.info("Returning {}".format(bucket))
+        self.log.info("Returning %s", bucket)
         return bucket
 
     def upload_file(self, host=None,
@@ -303,61 +316,43 @@ class BotoManager(object):
                     file_name=None,
                     key_name=None,
                     calc_md5=False):
+        ''' Upload a file to the object store '''
         if calc_md5:
-            md5_sum = md5.new()
+            md5_sum = hashlib.md5()
+        else:
+            md5_sum = None
 
         bucket = self.get_s3_bucket(host=host, bucket_name=bucket_name)
         if not bucket:
             bucket = self.conns[host].create_bucket(bucket_name)
 
         new_key = Key(bucket)
-        self.log.info("Creating key: {}".format(key_name))
+        self.log.info("Creating key: %s", key_name)
         new_key.key = key_name
         new_key.set_contents_from_filename(file_name)
 
-    def get_all_s3_files(self):
-        all_s3_files = {}
-        for s3_inst in self.s3_inst_info.keys():
-            try:
-                cs_conn = self.connect_to_s3(s3_inst)
-            except:
-                self.log.warn("Unable to connect to %s, skipping" % s3_inst)
-            else:
-                self.log.info("Connected to S3, cs_conn = ", cs_conn)
-                if cs_conn != None:
-                    all_s3_files[s3_inst] = self.get_s3_file_counts(cs_conn, s3_inst)
-        return all_s3_files
+        return md5_sum
 
     def get_all_bucket_names(self, host=None):
+        ''' Get all the buckets for a host '''
         bucket_names = []
         try:
-            bucket_list = conn.get_all_buckets()
-        except Exception as e:
-            self.log.error("Unable to list buckets: %s" % e)
+            bucket_list = self.conns[host].get_all_buckets()
+        except Exception as exception:
+            self.log.error("Unable to list buckets: %s", exception)
         else:
             for instance in bucket_list:
                 bucket_names.append(instance.name)
         return bucket_names
 
-    def print_running_status(self, transferred_bytes, start_time):
-        size_info = self.get_nearest_file_size(transferred_bytes)
-        cur_time = time.clock()
-        base_transfer_rate = float(transferred_bytes) / float(cur_time - start_time)
-        transfer_info = self.get_nearest_file_size(base_transfer_rate)
-        cur_conv_size = float(transferred_bytes) / float(size_info[0])
-        cur_conv_rate = base_transfer_rate / float(transfer_info[0])
-        sys.stdout.write("%7.02f %s : %6.02f %s per sec\r" % (
-            cur_conv_size, size_info[1],
-            cur_conv_rate, transfer_info[1]))
-        sys.stdout.flush()
-
     def get_file_key(self, host=None,
                      bucket_name=None,
                      key_name=None):
+        ''' Get a key from a given bucket '''
         key = None
         bucket = self.get_s3_bucket(host=host, bucket_name=bucket_name)
         if bucket:
-            self.log.info("Getting key {}".format(key_name))
+            self.log.info("Getting key %s", key_name)
             key = bucket.get_key(key_name)
 
         return key
@@ -367,11 +362,10 @@ class BotoManager(object):
                   host=None,
                   bucket_name=None,
                   key_name=None,
-                  stream_status=False,
-                  chunk_size=16777216):
+                  stream_status=False):
 
+        ''' Load an object into memory '''
         downloading = True
-        error = False
         file_data = bytearray()
         total_transfer = 0
         chunk = []
@@ -384,74 +378,73 @@ class BotoManager(object):
 
         if not self.conns[host]:
             self.log.info("Making OS connections")
-            conn = self.connect()
-        else:
-            conn = self.conns[host]
+            self.conns[host] = self.connect()
 
         # get the key from the bucket
-        self.log.info("Getting {} from {}".format(key_name, bucket_name))
+        self.log.info("Getting %s from %s", key_name, bucket_name)
         try:
             file_key = self.get_file_key(host=host,
                                          bucket_name=bucket_name,
                                          key_name=key_name)
-        except Exception as e:
-            self.log.error("Unable to get {} from {}".format(key_name, bucket_name))
-            self.log.error(e)
+        except Exception as exception:
+            self.log.error("Unable to get %s from %s", key_name, bucket_name)
+            self.log.error(exception)
         else:
             if file_key:
-                while downloading == True:
+                while downloading:
                     try:
-                        chunk = file_key.read(size=chunk_size)
-                    except Exception as e:
-                        error = True
+                        chunk = file_key.read(size=self.chunk_size)
+                    except Exception as exception:
                         downloading = False
-                        self.log.error("Error {} reading bytes, got {} bytes".format(
-                            str(e), len(chunk)))
+                        self.log.error("Error %s reading bytes, got %d bytes",
+                                       str(exception), len(chunk))
                         total_transfer = total_transfer + len(chunk)
                     else:
-                        if len(chunk) < chunk_size:
+                        if len(chunk) < self.chunk_size:
                             downloading = False
                         total_transfer += len(chunk)
                         file_data.extend(chunk)
                         if stream_status:
-                            sys.stdout.write("{:6.02}%%\r".format(
-                                float(total_transfer) / float(file_key.size) * 100.0))
+                            sys.stdout.write("%6.02f%%\r",
+                                             (float(total_transfer) /
+                                              float(file_key.size) * 100.0))
                             sys.stdout.flush()
             else:
-                self.log.warn('Unable to find key {}/{}/{}'.format(os_name, bucket_name, key_name))
+                self.log.warn('Unable to find key %s/%s/%s',
+                              os_name, bucket_name, key_name)
 
-        self.log.info('{} lines received'.format(len(str(file_data))))
+        self.log.info('%d lines received', len(str(file_data)))
         return str(file_data)
 
-    
     def parse_data_file(self,
                         uri=None,
                         data_type='tsv',
                         custom_delimiter=None):
-        """Processes loaded data as a tsv, csv, or
-        json, returning it as a list of dicts"""
+        '''
+        Processes loaded data as a tsv, csv, or
+        json, returning it as a list of dicts
+        '''
         key_data = []
         header = None
         skipped_lines = 0
-        delimiters = { 'tsv': '\t',
-                       'csv': ',',
-                       'json': '',
-                       'other': ''}
+        delimiters = {'tsv': '\t',
+                      'csv': ',',
+                      'json': '',
+                      'other': ''}
         other_delimiters = [' ', ',', ';']
 
         file_data = self.load_file(uri=uri)
 
         if data_type not in delimiters.keys():
-            print "Unable to process data type %s" % data_type
-            print "Valid data types:"
-            print delimiters.keys()
+            self.log.warning("Unable to process data type %s", data_type)
+            self.log.warning("Valid data types:")
+            self.log.warning("%s", delimiters.keys())
         else:
             if data_type == 'other':
                 if custom_delimiter:
                     delimiter = custom_delimiter
                 else:
-                    print "With data_type 'other', a delimiter is needed"
-                    raise
+                    raise Exception("With data_type 'other', a delimiter is needed")
             else:
                 delimiter = delimiters[data_type]
 
@@ -464,7 +457,7 @@ class BotoManager(object):
             else:
                 for line in file_data.split('\n'):
                     if delimiter in line:
-                        if len(line.strip('\n').strip()):
+                        if line.strip('\n').strip():
                             if not header:
                                 header = line.strip('\n').split(delimiter)
                             else:
@@ -477,64 +470,69 @@ class BotoManager(object):
                         #    remaining_chars = set([c for c in line if not c.isalnum()])
                         skipped_lines += 1
 
-        print '%d lines in file, %d processed' % (len(file_data.split('\n')), len(key_data))
+        self.log.info('%d lines in file, %d processed',
+                      len(file_data.split('\n')), len(key_data))
         return key_data
 
-    def md5_s3_key(self, conn, which_bucket, key_name, chunk_size=16777216):
+    def md5_s3_key(self, conn,
+                   which_bucket,
+                   key_name):
+        ''' Get the checksum of an s3 object '''
         result = {
             'transfer_time': 0,
             'bytes_transferred': 0
         }
-        m = md5.new()
+        md5sum = hashlib.md5()
         sha = hashlib.sha256()
-        size = 0
+        total_transfer = 0
         retries = 0
         result['start_time'] = time.time()
-        error = False
         running = False
         file_key = self.get_file_key(conn, which_bucket, key_name)
         if file_key:
             running = True
             file_key.BufferSize = self.chunk_size
         else:
-            self.log.warning("Unable to find key %s %s" % (which_bucket, key_name))
+            self.log.warning("Unable to find key %s %s", which_bucket, key_name)
 
-        while running == True:
+        while running:
             try:
                 #chunk = file_key.read()
-                chunk = file_key.read(size=chunk_size)
-            except:
-                if len(chunk) == 0:
+                chunk = file_key.read(size=self.chunk_size)
+            except Exception as exception:
+                if chunk:
                     if retries > 10:
-                        print "Error reading bytes"
-                        error = True
+                        self.log.error("Error reading bytes: %s", exception)
                         break
                     else:
                         retries += 1
-                        print "%d: Error reading bytes, retry %d" % (id, retries)
+                        self.log.error("Error reading bytes %s, retry %d",
+                                       exception, retries)
                         time.sleep(2)
                 else:
-                    print "%d: Error %s reading bytes, got %d bytes" % (
-                        id, str((sys.exc_info())[1]), len(chunk))
+                    self.log.error("Error reading bytes %s, got %d bytes",
+                                   exception, len(chunk))
                     total_transfer = total_transfer + len(chunk)
-                    m.update(chunk)
+                    md5sum.update(chunk)
                     sha.update(chunk)
                     retries = 0
             else:
-                if len(chunk) == 0:
+                if chunk == 0:
                     running = False
                 result['bytes_transferred'] += len(chunk)
                 if file_key.size > 0:
-                   sys.stdout.write("%6.02f%%\r" % (float(result['bytes_transferred']) / float(file_key.size) * 100.0))
+                    sys.stdout.write("{:6.02f}%%\r".format(
+                        (float(result['bytes_transferred']) /
+                         float(file_key.size) * 100.0)))
                 else:
-                   sys.stdout.write("0.00%%\r")
+                    sys.stdout.write("0.00%%\r")
 
                 sys.stdout.flush()
-                m.update(chunk)
+                md5sum.update(chunk)
                 sha.update(chunk)
                 retries = 0
         result['transfer_time'] = time.time() - result['start_time']
-        result['md5_sum'] = m.hexdigest()
+        result['md5_sum'] = md5sum.hexdigest()
         result['sha256_sum'] = sha.hexdigest()
         return result
 
@@ -557,8 +555,8 @@ def is_probably_swift_segments(obj):
         blob = json.loads("".join(obj.as_stream()))
     except ValueError:
         return False
-    if (type(blob) == list
-            and len(blob) > 0
+    if (isinstance(blob, list)
+            and blob
             and "path" in blob[0]
             and "etag" in blob[0]
             and "size_bytes" in blob[0]):
@@ -577,5 +575,5 @@ def swift_stream(obj):
     for segment in doc:
         container_name, obj_name = segment["path"].split("/", 2)[1:3]
         bucket = driver.get_container(container_name)
-        for bytes in bucket.get_object(obj_name).as_stream():
-            yield bytes
+        for get_bytes in bucket.get_object(obj_name).as_stream():
+            yield get_bytes
