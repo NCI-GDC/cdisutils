@@ -57,7 +57,7 @@ def get_nearest_file_size(size):
 
 def print_running_status(transferred_bytes=None,
                          start_time=None,
-                         total_size=None):
+                         total_size=None, msg_id=0):
     ''' Print the status of a transfer, given time and size '''
     size_info = get_nearest_file_size(transferred_bytes)
     cur_time = time.clock()
@@ -67,13 +67,13 @@ def print_running_status(transferred_bytes=None,
     cur_conv_rate = base_transfer_rate / float(transfer_info[0])
     if total_size:
         percent_complete = float(transferred_bytes) / float(total_size) * 100.0
-        sys.stdout.write("{:7.02f} {} ({:6.02f}%) : {:6.02f} {} / sec\r".format(
-            cur_conv_size, size_info[1],
+        sys.stdout.write("{:d}: {:7.02f} {} ({:6.02f}%) : {:6.02f} {} / sec\r".format(
+            msg_id, cur_conv_size, size_info[1],
             percent_complete,
             cur_conv_rate, transfer_info[1]))
     else:
-        sys.stdout.write("{:7.02f} {} : {:6.02f} {} / sec\r".format(
-            cur_conv_size, size_info[1],
+        sys.stdout.write("{:d}: {:7.02f} {} : {:6.02f} {} / sec\r".format(
+            msg_id, cur_conv_size, size_info[1],
             cur_conv_rate, transfer_info[1]))
     sys.stdout.flush()
 
@@ -361,7 +361,8 @@ class Boto3Manager(object):
 
     def copy_multipart_file(self, src_info=None,
                             dst_info=None,
-                            stream_status=True):
+                            stream_status=True,
+                            msg_id=0):
         '''
         Routine to use boto3 to copy a file
         multipart between object stores
@@ -404,7 +405,8 @@ class Boto3Manager(object):
                 if stream_status:
                     print_running_status(transferred_bytes=mp_info['total_size'],
                                          start_time=mp_info['start_time'],
-                                         total_size=src_key_size)
+                                         total_size=src_key_size,
+                                         msg_id=msg_id)
 
                 mp_info['md5_sum'].update(chunk)
                 mp_info['sha256_sum'].update(chunk)
