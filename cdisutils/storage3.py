@@ -77,6 +77,56 @@ def print_running_status(transferred_bytes=None,
             cur_conv_rate, transfer_info[1]))
     sys.stdout.flush()
 
+def load_creds():
+    ''' Load s3 creds from environment vars '''
+    s3_creds = {}
+    s3_key_mapping = {
+        'ACCESS_KEY': 'aws_access_key_id',
+        'SECRET_KEY': 'aws_secret_access_key',
+        #'ENDPOINT': 'url',
+        'SECURE': 'use_ssl',
+        'VALIDATE_CERTS': 'verify'
+    }
+    s3_endpoint_defaults = {
+        'ceph' : 'gdc-cephb-objstore.osdc.io', 
+        'cleversafe' : 'cleversafe.service.consul',
+        'aws': 's3-external-1.amazonaws.com', 
+        'jamboree': 'gdc-accessors-jamboree.osdc.io', 
+        'pdc' : 'bionimbus-objstore-cs.opensciencedatacloud.org' }
+    s3_inst_default = {
+            'use_ssl': True,
+            'verify': False,
+            'aws_access_key_id': '',
+            'aws_secret_access_key': '',
+            #'url': ''
+    }
+
+    for env in os.environ.keys():
+        for key in s3_key_mapping.keys():
+            if key in env:
+                os_name = env[:env.find(key)].rstrip('_').lower()
+                s3_key = s3_endpoint_defaults.get(os_name)
+                if s3_key:
+                    if s3_key not in s3_creds:
+                        s3_creds[s3_key] = dict(s3_inst_default)
+                    if isinstance(s3_inst_default[s3_key_mapping[key]], bool):
+                        if str(os.environ[env]).lower() == 'false':
+                            s3_creds[s3_key][s3_key_mapping[key]] = False
+                        else:
+                            s3_creds[s3_key][s3_key_mapping[key]] = True
+                    elif type(s3_inst_default[s3_key_mapping[key]]) == list:
+                        if not s3_creds[s3_key][s3_key_mapping[key]]:
+                            s3_creds[s3_key][s3_key_mapping[key]] = []
+                        s3_creds[s3_ley][s3_key_mapping[key]].append(str(os.environ[env]))
+                    else:
+                        s3_creds[s3_key][s3_key_mapping[key]] = str(os.environ[env])
+
+    for key, value in s3_creds[s3_key].iteritems():
+        if not len(str(value)):
+            print('Incomplete cred data for {}: {}'.format(s3_key, key))
+
+    return s3_creds
+
 class Boto3Manager(object):
     '''
     A class that abstracts away boto3 calls to multiple underlying
