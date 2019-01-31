@@ -10,6 +10,8 @@ TODO: add tests
 """
 
 import sys
+import ssl
+import httplib
 from .log import get_logger
 from boto import connect_s3
 from boto.s3 import connection
@@ -17,6 +19,7 @@ from dateutil import parser
 from datetime import timedelta, datetime
 from indexclient.client import IndexClient
 from urlparse import urlparse
+from distutils.version import StrictVersion
 
 import hashlib
 import json
@@ -303,8 +306,25 @@ class BotoManager(object):
     def hosts(self):
         return self.conns.keys()
 
+
     def connect(self):
+        def create_factory(host,port=443,timeout=10):
+            return (
+                httplib.HTTPSConnection(
+                    host = host,
+                    port = port,
+                    timeout = timeout,
+                    context = ssl._create_unverified_context()
+                )
+            )
+
+        py_ver = ".".join(str(sys.version_info[i]) for i in xrange(3))
+        if StrictVersion(py_ver) >= StrictVersion('2.7.9'):
+            factory = (create_factory, ())
+        else:
+            factory = None
         for host, kwargs in self.config.iteritems():
+            kwargs['https_connection_factory'] = factory
             self.conns[host] = connect_s3(**kwargs)
 
     def new_connection_to(self, host):
