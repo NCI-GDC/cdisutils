@@ -88,7 +88,7 @@ def load_creds():
         'VALIDATE_CERTS': 'verify'
     }
     s3_endpoint_defaults = {
-        'ceph' : 'gdc-cephb-objstore.osdc.io', 
+        'ceph' : 'ceph.service.consul', 
         'cleversafe' : 'cleversafe.service.consul',
         'aws': 's3-external-1.amazonaws.com', 
         'jamboree': 'gdc-accessors-jamboree.osdc.io', 
