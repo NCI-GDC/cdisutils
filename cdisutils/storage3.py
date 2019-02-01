@@ -67,12 +67,12 @@ def print_running_status(transferred_bytes=None,
     cur_conv_rate = base_transfer_rate / float(transfer_info[0])
     if total_size:
         percent_complete = float(transferred_bytes) / float(total_size) * 100.0
-        sys.stdout.write("{:d}: {:7.02f} {} ({:6.02f}%) : {:6.02f} {} / sec\r".format(
+        sys.stdout.write("{:3d}: {:7.02f} {} ({:6.02f}%) : {:6.02f} {} / sec\r".format(
             msg_id, cur_conv_size, size_info[1],
             percent_complete,
             cur_conv_rate, transfer_info[1]))
     else:
-        sys.stdout.write("{:d}: {:7.02f} {} : {:6.02f} {} / sec\r".format(
+        sys.stdout.write("{:3d}: {:7.02f} {} : {:6.02f} {} / sec\r".format(
             msg_id, cur_conv_size, size_info[1],
             cur_conv_rate, transfer_info[1]))
     sys.stdout.flush()
