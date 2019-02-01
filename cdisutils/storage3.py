@@ -248,6 +248,8 @@ class Boto3Manager(object):
         # TODO: Allow the location to be passed in via config
         cur_dict = dict(self.config[host])
         del cur_dict['host']
+        if 'ceph' in s3_url:
+            cur_dict['config'] = boto3.session.Config(signature_version='s3')
         conn = boto3.client('s3', 'us-east-1',
                             endpoint_url=s3_url,
                             **cur_dict)
