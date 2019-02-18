@@ -2,6 +2,7 @@ language: python
 python:
   - "2.7"
 install:
+  - export BOTO_CONFIG=/dev/null
   - python setup.py install
   - pip install -r dev-requirements.txt -r requirements.txt
 script: "py.test -v"
