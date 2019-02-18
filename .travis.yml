@@ -1,7 +1,16 @@
 language: python
 python:
-  - "2.7"
+- '2.7'
 install:
-  - python setup.py install
-  - pip install -r dev-requirements.txt -r requirements.txt
-script: "py.test -v"
+- export BOTO_CONFIG=/dev/null
+- python setup.py install
+- pip install -r dev-requirements.txt -r requirements.txt
+script: py.test -v
+deploy:
+  provider: pypi
+  user: uc-ctds
+  skip_existing: true
+  on:
+    tags: true
+  password:
+    secure: SiXrvvIt2vRDiCBCJ2GztxSOnLdr9LZoT3xnZdH7587mEuVKPT1GhwZxS9GZKpfHlNQTi3I38cgC/P82tH+inJvjYSIfXc46Nhy6GyEWv289O+PGDnlMpsm/4dyjLw7CTgw6F7goyhvrznF0SnikMwXOIilD6BsEzx4pWDBgDc3FfMXNf2rxGcZOaIg9hwVRsWuSiXtiawZPpYoHKkyVr3vlL1lQFd4dD474ChyyvS1rSWoMwAZkyMopvSlAk9QNnwE//P5CyUttGPlxSjN7KEoCHCqdxDIFOJe9BAbNOSPkEwZI8JRhm8puN0M8JAfYJMFWJ0oCFkmghoaFMCzUXj0xYqS31tobtCSl5HtfSPXuF6Dw+YtCZwDvYR35OrlJalKp9/OavEpIOnPA17OXWn2JyDlWjSiRgHn0X5irEHDtR1yW84GHy3D18C8jgOsbGygro6eQspx33H5PonEV42nvcW+o0Nsty/mNZaBNnfXO9+Xe/Xoa297pjshGvT4QKWbJgNeuuaHWItKFFImfgDlEiekusZnIrRDhc2S0GOddIqCtx+ibGOKlIGR8kYXa0ewv6HYFgTs0EUpwY057h9SKXieoeKIGHPmo6tPgbGrHb+zkbQb6ksrln/YssajcGAiOxkIJRtaZYb4YOj5gL07LcYHBk4dX2b5kWatJC2Q=

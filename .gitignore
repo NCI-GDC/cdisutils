@@ -19,6 +19,7 @@ parts/
 sdist/
 var/
 venv/
+.python-version
 *.egg-info/
 .installed.cfg
 *.egg
