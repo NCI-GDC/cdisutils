@@ -84,7 +84,8 @@ REPO_MAP = {
 
 BASE_BRANCH_MAP = {
     'authoriation': 'origin/master',
-    'gdcdatamodel': 'release/oobleck'
+    'gdcdatamodel': 'release/oobleck',
+    'gdcapi': 'release/oobleck',
 }
 
 @contextmanager
