@@ -63,33 +63,28 @@ import tempfile
 
 OPEN_CMD = os.environ.get("OPEN_CMD", 'open')
 DEP_PIN_PATTERN = ("git\+(https|ssh)://(git@)?github\.com/NCI-GDC/"
-                   "{repo}\.git@([0-9a-f]{{40}})#egg={repo}")
+                   "{repo}\.git@(.*?)#egg={repo}")
 
 DEPENDENCY_MAP = {
     'gdcdatamodel': ['setup.py'],
     'gdcapi': ['requirements.txt'],
-    'zugs': ['setup.py'],
     'esbuild': ['requirements.txt'],
     'runners': ['setup.py'],
-    'auto-qa': ['requirements.txt'],
     'authorization': ['auth_server/requirements.txt'],
-    'legacy-import': ['setup.py']
 }
 
 
 REPO_MAP = {
     'gdcdatamodel': 'git@github.com:NCI-GDC/gdcdatamodel.git',
     'gdcapi': 'git@github.com:NCI-GDC/gdcapi.git',
-    'zugs': 'git@github.com:NCI-GDC/zugs.git',
     'esbuild': 'git@github.com:NCI-GDC/esbuild.git',
     'runners': 'git@github.com:NCI-GDC/runners.git',
-    'auto-qa': 'git@github.com:NCI-GDC/auto-qa.git',
     'authorization': 'git@github.com:NCI-GDC/authorization.git',
-    'legacy-import': 'git@github.com:NCI-GDC/legacy-import.git',
 }
 
 BASE_BRANCH_MAP = {
     'authoriation': 'origin/master',
+    'gdcdatamodel': 'release/oobleck'
 }
 
 @contextmanager
@@ -132,6 +127,7 @@ def replace_dep_in_file(path, pattern, repl):
     with open(path, 'w') as updated:
         updated.write(data)
 
+
 def get_base_branch(repo):
     if repo in BASE_BRANCH_MAP:
         return BASE_BRANCH_MAP[repo]
@@ -152,7 +148,7 @@ def checkout_fresh_branch(repo, name):
         os.chdir(cwd)
 
 def commit_and_push(hash, branch):
-    message = 'updating dictionary commit to %s' % hash
+    message = 'chore(deps): dictionary commit to %s' % hash
     check_call(['git', 'commit', '-am', message])
 
     print "Pushing datamodel origin/%s" % branch
@@ -166,6 +162,8 @@ def open_repo_url():
 
 
 def bump_datamodel(branch, to_dictionary_hash):
+    print("BRANCH: {}".format(branch))
+    print("DICTIONARY_HASH: {}".format(to_dictionary_hash))
     pattern = DEP_PIN_PATTERN.format(repo='gdcdictionary')
     repo = 'gdcdatamodel'
     url = REPO_MAP[repo]
