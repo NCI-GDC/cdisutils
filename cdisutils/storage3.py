@@ -1,11 +1,9 @@
 # -*- coding: utf-8 -*-
 """
-cdisutils.storage
+cdisutils.storage3
 ----------------------------------
 
-Utilities for working with object stores using boto/libcloud.
-
-TODO: add tests
+Utilities for working with object stores using boto3
 
 """
 
@@ -19,7 +17,8 @@ from cStringIO import StringIO as BIO
 from urlparse import urlparse
 
 import boto3
-
+from botocore.exceptions import ClientError
+import urllib3
 from cdisutils.storage import DEFAULT_MP_CHUNK_SIZE
 from cdisutils.storage import DEFAULT_DOWNLOAD_CHUNK_SIZE
 
@@ -27,7 +26,6 @@ from .log import get_logger
 
 # NOTE: These are to disable the cert mismatch for our object stores
 # should we ever fix that, we should remove these
-import urllib3
 urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 urllib3.disable_warnings(urllib3.exceptions.SNIMissingWarning)
 
@@ -88,21 +86,21 @@ def load_creds():
         'VALIDATE_CERTS': 'verify'
     }
     s3_endpoint_defaults = {
-        'ceph' : 'ceph.service.consul', 
+        'ceph' : 'ceph.service.consul',
         'cleversafe' : 'cleversafe.service.consul',
-        'aws': 's3-external-1.amazonaws.com', 
-        'jamboree': 'gdc-accessors-jamboree.osdc.io', 
-        'pdc' : 'bionimbus-objstore-cs.opensciencedatacloud.org' }
+        'aws': 's3-external-1.amazonaws.com',
+        'jamboree': 'gdc-accessors-jamboree.osdc.io',
+        'pdc' : 'bionimbus-objstore-cs.opensciencedatacloud.org'}
     s3_inst_default = {
-            'use_ssl': True,
-            'verify': False,
-            'aws_access_key_id': '',
-            'aws_secret_access_key': '',
-            #'url': ''
+        'use_ssl': True,
+        'verify': True,
+        'aws_access_key_id': '',
+        'aws_secret_access_key': '',
+        #'url': ''
     }
 
     for env in os.environ.keys():
-        for key in s3_key_mapping.keys():
+        for key in s3_key_mapping:
             if key in env:
                 os_name = env[:env.find(key)].rstrip('_').lower()
                 s3_key = s3_endpoint_defaults.get(os_name)
@@ -114,15 +112,15 @@ def load_creds():
                             s3_creds[s3_key][s3_key_mapping[key]] = False
                         else:
                             s3_creds[s3_key][s3_key_mapping[key]] = True
-                    elif type(s3_inst_default[s3_key_mapping[key]]) == list:
+                    elif isinstance(s3_inst_default[s3_key_mapping[key]], list):
                         if not s3_creds[s3_key][s3_key_mapping[key]]:
                             s3_creds[s3_key][s3_key_mapping[key]] = []
-                        s3_creds[s3_ley][s3_key_mapping[key]].append(str(os.environ[env]))
+                        s3_creds[s3_key][s3_key_mapping[key]].append(str(os.environ[env]))
                     else:
                         s3_creds[s3_key][s3_key_mapping[key]] = str(os.environ[env])
 
     for key, value in s3_creds[s3_key].iteritems():
-        if not len(str(value)):
+        if not str(value):
             print('Incomplete cred data for {}: {}'.format(s3_key, key))
 
     return s3_creds
@@ -296,7 +294,7 @@ class Boto3Manager(object):
         try:
             key = self.get_connection(parsed_url['s3_loc']).head_object(
                 Bucket=parsed_url['bucket_name'], Key=parsed_url['key_name'])
-        except Exception as exception:
+        except ClientError as exception:
             self.log.warning('Unable to find %s: %s', url, exception)
             key = None
 
@@ -358,7 +356,7 @@ class Boto3Manager(object):
                 MultipartUpload=mp_info['manifest'],
                 UploadId=mp_info['mp_id']
             )
-        except Exception as exception:
+        except ClientError as exception:
             raise Exception('Unable to complete mulitpart %s: %s' % (
                 mp_info['mp_id'], exception))
 
@@ -377,7 +375,7 @@ class Boto3Manager(object):
                 Key=mp_info['dst_info']['key_name'],
                 PartNumber=mp_info['chunk_index'],
                 UploadId=mp_info['mp_id'])
-        except Exception as exception:
+        except ClientError as exception:
             raise Exception("Error writing %d bytes to %s: %s" % (
                 mp_info['cur_size'],
                 mp_info['dst_info']['url'], exception))
@@ -440,7 +438,7 @@ class Boto3Manager(object):
             src_key_info = self.conns[src_info['s3_loc']].get_object(
                 Bucket=src_info['bucket_name'],
                 Key=src_info['key_name'])
-        except Exception as exception:
+        except ClientError as exception:
             raise Exception("Unable to get %s: %s" % (src_info['url'], exception))
 
         if src_key_info:
@@ -467,7 +465,7 @@ class Boto3Manager(object):
                     self.upload_multipart_chunk(mp_info=mp_info)
                 try:
                     chunk = self.download_object_part(key=src_key)
-                except Exception as exception:
+                except ClientError as exception:
                     raise Exception('Unable to read from %s: %s' %
                                     (src_key.name, exception))
 
@@ -516,7 +514,7 @@ class Boto3Manager(object):
                 while downloading:
                     try:
                         chunk = self.download_object_part(key=file_key)
-                    except Exception as exception:
+                    except ClientError as exception:
                         downloading = False
                         self.log.error("Error %s reading bytes, got %d bytes",
                                        str(exception), len(chunk))
@@ -536,7 +534,7 @@ class Boto3Manager(object):
 
         self.log.info('%d lines received', len(str(file_data)))
         return str(file_data)
-    
+
     def parse_data_file(self,
                         uri=None,
                         data_type='tsv',
@@ -552,7 +550,7 @@ class Boto3Manager(object):
                       'csv': ',',
                       'json': '',
                       'other': ''}
-        other_delimiters = [' ', ',', ';']
+        #other_delimiters = [' ', ',', ';']
 
         file_data = self.load_file(url=uri)
 
@@ -620,7 +618,7 @@ class Boto3Manager(object):
         while running:
             try:
                 chunk = self.download_object_part(key=file_key)
-            except Exception as exception:
+            except ClientError as exception:
                 if chunk:
                     if retries > 10:
                         self.log.error("Error reading: %s", exception)
@@ -640,13 +638,13 @@ class Boto3Manager(object):
                 result['bytes_transferred'] += len(chunk)
                 if (len(chunk) < self.chunk_size) and\
                     (result['bytes_transferred'] >= file_key_size):
-                    
+
                     running = False
 
                 if file_key_size > 0:
                     sys.stdout.write("{:6.02f}%\r".format(
-                                     (float(result['bytes_transferred']) /
-                                      float(file_key_size) * 100.0)))
+                        (float(result['bytes_transferred']) /
+                        float(file_key_size) * 100.0)))
                 else:
                     sys.stdout.write("0.00%%\r")
                 sys.stdout.flush()
