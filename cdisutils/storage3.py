@@ -145,7 +145,7 @@ class Boto3Manager(object):
             "cleversafe.service.consul: {
                 "aws_access_key_id": "foo",
                 "aws_secret_access_key": "bar",
-                "is_secure": False,
+                "verify": False,
                 . . .
             },
         }
@@ -248,9 +248,19 @@ class Boto3Manager(object):
         del cur_dict['host']
         if 'ceph' in s3_url:
             cur_dict['config'] = boto3.session.Config(signature_version='s3')
-        conn = boto3.client('s3', 'us-east-1',
-                            endpoint_url=s3_url,
-                            **cur_dict)
+        if cur_dict.get('verify') == 'false':
+            print "Skipping verify"
+            cur_dict.pop('verify')
+            conn = boto3.client('s3', 'us-east-1',
+                                endpoint_url=s3_url,
+                                verify=False,
+                                **cur_dict)
+        else:
+            print "No verify found, using dict"
+            conn = boto3.client('s3', 'us-east-1',
+                                endpoint_url=s3_url,
+                                **cur_dict)
+
         return conn
 
     def parse_url(self, url=None):
