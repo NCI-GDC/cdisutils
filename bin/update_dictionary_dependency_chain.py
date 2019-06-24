@@ -24,12 +24,15 @@ Usage: There are 4.5 steps
    in step 1.5. Go fight travis.
 
 First(1) step
+Run `python update_dictionary_dependency_chain.py --help` to get more info
 
 ```bash
 python update_dictionary_dependency_chain.py \ #
     --target datamodel                             \ # only update datamodel
     --branch chore/bump-deps                       \ # push on this branch
-    --dictionary_commit SHA1                         # change to this dictionary commit
+    --dictionary_commit SHA1                       \ # change to this dictionary commit
+    --open_browser                                 \ # Optional: open repo in browser after commit
+    --dry_run                                        # Optional: dry run, simply create branches, do not push them
 ```
 
 Second(2) step
@@ -39,7 +42,9 @@ python update_dictionary_dependency_chain.py \ #
     --target downstream                            \ # don't update datamodel
     --branch chore/bump-deps                       \ # push on this branch
     --dictionary_commit SHA1                       \ # change to this dictionary commit
-    --datamodel_commit  SHA1                         # change to this datamodel commit
+    --datamodel_commit  SHA1                       \ # change to this datamodel commit
+    --open_browser                                 \ # Optional: open repo in browser after commit
+    --dry_run                                        # Optional: dry run, simply create branches, do not push them
 ```
 
 Note: you can set the OPEN_CMD environment variable to a browser to
@@ -71,7 +76,6 @@ DEPENDENCY_MAP = {
     'zugs': ['setup.py'],
     'esbuild': ['requirements.txt'],
     'runners': ['setup.py'],
-    'auto-qa': ['requirements.txt'],
     'authorization': ['auth_server/requirements.txt'],
     'legacy-import': ['setup.py']
 }
@@ -83,14 +87,24 @@ REPO_MAP = {
     'zugs': 'git@github.com:NCI-GDC/zugs.git',
     'esbuild': 'git@github.com:NCI-GDC/esbuild.git',
     'runners': 'git@github.com:NCI-GDC/runners.git',
-    'auto-qa': 'git@github.com:NCI-GDC/auto-qa.git',
     'authorization': 'git@github.com:NCI-GDC/authorization.git',
     'legacy-import': 'git@github.com:NCI-GDC/legacy-import.git',
 }
 
+# edit this if you want to change each branch manually, otherwise
+# just use the command line arg default_base_branch
 BASE_BRANCH_MAP = {
-    'authoriation': 'origin/master',
+    'gdcdatamodel': 'origin/master',
+    'gdcapi': 'origin/master',
+    'zugs': 'origin/develop',
+    'esbuild': 'origin/develop',
+    'runners': 'origin/develop',
+    'auto-qa': 'origin/develop',
+    'authorization': 'origin/develop',
+    'legacy-import': 'origin/master',
 }
+
+DEFAULT_BASE_BRANCH = 'origin/develop'
 
 @contextmanager
 def within_dir(path):
@@ -105,7 +119,7 @@ def within_dir(path):
 
 
 @contextmanager
-def within_tempdir():
+def within_tempdir(dry_run=False):
     original_path = os.getcwd()
     try:
         dirpath = tempfile.mkdtemp()
@@ -113,8 +127,11 @@ def within_tempdir():
         os.chdir(dirpath)
         yield dirpath
     finally:
-        print "Cleaning up temp files in %s" % dirpath
-        shutil.rmtree(dirpath)
+        if not dry_run:
+            print "Cleaning up temp files in %s" % dirpath
+            shutil.rmtree(dirpath)
+        else:
+            print "dry_run, saving temp files in {}".format(dirpath)
         os.chdir(original_path)
 
 
@@ -136,12 +153,16 @@ def get_base_branch(repo):
     if repo in BASE_BRANCH_MAP:
         return BASE_BRANCH_MAP[repo]
     else:
-        return 'origin/develop'
+        return DEFAULT_BASE_BRANCH
 
-def checkout_fresh_branch(repo, name):
+def checkout_fresh_branch(repo, name, default_base=DEFAULT_BASE_BRANCH):
     cwd = os.getcwd()
     try:
-        base_branch = get_base_branch(repo)
+        #base_branch = get_base_branch(repo)
+        if default_base != DEFAULT_BASE_BRANCH:
+            base_branch = default_base
+        else:
+            base_branch = BASE_BRANCH_MAP.get(repo, default_base)
         print "Checking out new branch %s based off %s in %s" % (name, base_branch, repo)
         os.chdir(repo)
 
@@ -151,37 +172,50 @@ def checkout_fresh_branch(repo, name):
     finally:
         os.chdir(cwd)
 
-def commit_and_push(hash, branch):
+def commit_and_push(hash, branch, dry_run=False):
     message = 'updating dictionary commit to %s' % hash
     check_call(['git', 'commit', '-am', message])
 
-    print "Pushing datamodel origin/%s" % branch
-    check_call(['git', 'push', 'origin', branch])
+    if not dry_run:
+        print "Pushing datamodel origin/%s" % branch
+        check_call(['git', 'push', 'origin', branch])
+    else:
+        print "dry_run requested, skipping push"
 
-def open_repo_url():
-    proc = Popen(['git', 'config', '--get', 'remote.origin.url'] ,stdout=PIPE)
-    url = proc.stdout.read().replace('git@github.com:', 'https://github.com/')
-    print "Opening remote url %s" % url
-    call([OPEN_CMD, url])
+def open_repo_url(open_repo=False):
+    if open_repo:
+        proc = Popen(['git', 'config', '--get', 'remote.origin.url'] ,stdout=PIPE)
+        url = proc.stdout.read().replace('git@github.com:', 'https://github.com/')
+        print "Opening remote url %s" % url
+        call([OPEN_CMD, url])
 
 
-def bump_datamodel(branch, to_dictionary_hash):
+def bump_datamodel(branch,
+                   to_dictionary_hash,
+                   open_repo=False,
+                   dry_run=False,
+                   default_base=DEFAULT_BASE_BRANCH):
     pattern = DEP_PIN_PATTERN.format(repo='gdcdictionary')
     repo = 'gdcdatamodel'
     url = REPO_MAP[repo]
     check_call(['git', 'clone', url])
-    checkout_fresh_branch(repo, branch)
+    checkout_fresh_branch(repo, branch, default_base=default_base)
 
     with within_dir(repo):
 
         for path in DEPENDENCY_MAP[repo]:
             replace_dep_in_file(path, pattern, to_dictionary_hash)
 
-        commit_and_push(hash=to_dictionary_hash, branch=branch)
-        open_repo_url()
+        commit_and_push(hash=to_dictionary_hash, branch=branch, dry_run=dry_run)
+        open_repo_url(open_repo=open_repo)
 
 
-def bump_downstream(branch, to_dictionary_hash, to_datamodel_hash):
+def bump_downstream(branch,
+                    to_dictionary_hash,
+                    to_datamodel_hash,
+                    open_repo=False,
+                    dry_run=False,
+                    default_base=DEFAULT_BASE_BRANCH):
     dictionary_pattern = DEP_PIN_PATTERN.format(repo='gdcdictionary')
     datamodel_pattern = DEP_PIN_PATTERN.format(repo='gdcdatamodel')
 
@@ -190,7 +224,7 @@ def bump_downstream(branch, to_dictionary_hash, to_datamodel_hash):
             continue  # should be done via bump_datamodel
 
         check_call(['git', 'clone', url])
-        checkout_fresh_branch(repo, branch)
+        checkout_fresh_branch(repo, branch, default_base=default_base)
 
         with within_dir(repo):
 
@@ -205,8 +239,8 @@ def bump_downstream(branch, to_dictionary_hash, to_datamodel_hash):
                     datamodel_pattern,
                     to_datamodel_hash)
 
-            commit_and_push(hash=to_dictionary_hash, branch=branch)
-            open_repo_url()
+            commit_and_push(hash=to_dictionary_hash, branch=branch, dry_run=dry_run)
+            open_repo_url(open_repo=open_repo)
 
 def main():
     parser = argparse.ArgumentParser(
@@ -218,20 +252,35 @@ def main():
     parser.add_argument('--branch', help='branch to push bump as')
     parser.add_argument('--dictionary_commit', required=True, help='commit of dictionary')
     parser.add_argument('--datamodel_commit', required=False, help='commit of datamodel')
+    parser.add_argument('--open_browser', action='store_true',
+        help='open repo in browser after commit')
+    parser.add_argument('--default_base_branch',
+        help='default base branch to use for target repo, default = {}'.format(DEFAULT_BASE_BRANCH),
+        default=DEFAULT_BASE_BRANCH)
+    parser.add_argument('--dry_run', action='store_true',
+        help='dry run, simply create branches, do not push them')
 
     args = parser.parse_args()
 
-    with within_tempdir():
+    with within_tempdir(dry_run=args.dry_run):
         if args.target == 'datamodel':
-            bump_datamodel(args.branch, args.dictionary_commit)
+            bump_datamodel(args.branch,
+                           args.dictionary_commit,
+                           open_repo=args.open_browser,
+                           dry_run=args.dry_run,
+                           default_base=args.default_base_branch)
 
         else:
             assert args.datamodel_commit, (
                 "When run with target=%s, argument `datamodel_commit` "
                 "is required") % args.target
 
-            bump_downstream(
-                args.branch, args.dictionary_commit, args.datamodel_commit)
+            bump_downstream(args.branch,
+                            args.dictionary_commit,
+                            args.datamodel_commit,
+                            open_repo=args.open_browser,
+                            dry_run=args.dry_run,
+                            default_base=args.default_base_branch)
 
 if __name__ == '__main__':
     main()
