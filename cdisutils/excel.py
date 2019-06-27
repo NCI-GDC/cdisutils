@@ -161,13 +161,13 @@ def load_spreadsheet_from_s3(boto_man=None,
     try:
         wb = openpyxl.load_workbook(filename=BytesIO(file_data))
     except Exception as e:
-        print 'Hmm, something wrong: {}'.format(e)
+        print('Hmm, something wrong: {}'.format(e))
         if key_name.endswith('xls'):
-            print 'Loading as xlsx'
+            print('Loading as xlsx')
             wb = openpyxl.load_workbook(filename=BytesIO(file_data),
                                         data_only=False)
         else:
-            print 'Loading as xls'
+            print('Loading as xls')
             wb = openpyxl.load_workbook(filename=BytesIO(file_data),
                                         data_only=True)
     else:
