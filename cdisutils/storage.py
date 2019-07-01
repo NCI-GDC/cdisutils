@@ -15,7 +15,10 @@ from boto.s3 import connection
 from dateutil import parser
 from datetime import timedelta, datetime
 from indexclient.client import IndexClient
-from urlparse import urlparse
+from future.standard_library import install_aliases
+install_aliases()
+
+from urllib.parse import urlparse
 
 import hashlib
 import json
