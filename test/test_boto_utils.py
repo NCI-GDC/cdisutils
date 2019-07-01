@@ -99,4 +99,4 @@ class BotoUtilsTest(TestCase):
             key.set_contents_from_string("test")
             (md5, size) = md5sum_with_size(key)
             assert size == key.size
-            assert md5 == key.md5
+            assert md5.encode('ascii') == key.md5
