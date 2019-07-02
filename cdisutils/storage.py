@@ -15,6 +15,7 @@ from boto.s3 import connection
 from dateutil import parser
 from datetime import timedelta, datetime
 from indexclient.client import IndexClient
+from future.utils import iteritems
 from future.standard_library import install_aliases
 install_aliases()
 
@@ -176,7 +177,7 @@ class BotoManager(object):
         """
 
         self.config = config
-        for host, kwargs in self.config.items():
+        for host, kwargs in iteritems(self.config):
             # we need to pass the host argument in when we connect, so
             # set it here
             kwargs["host"] = host
@@ -219,10 +220,10 @@ class BotoManager(object):
 
     @property
     def hosts(self):
-        return list(self.conns.keys())
+        return self.conns.keys()
 
     def connect(self):
-        for host, kwargs in self.config.items():
+        for host, kwargs in iteritems(self.config):
             self.conns[host] = connect_s3(**kwargs)
 
     def new_connection_to(self, host):
@@ -234,7 +235,7 @@ class BotoManager(object):
     def harmonize_host(self, host):
         matches = {
             alias: aliased_host
-            for alias, aliased_host in self.host_aliases.items()
+            for alias, aliased_host in iteritems(self.host_aliases)
             if re.match(alias, host)
         }
 
@@ -242,8 +243,8 @@ class BotoManager(object):
             self.log.warning('matched multiple aliases: {}'.format(matches))
 
         if matches:
-            self.log.info('using matched aliases: {}'.format(list(matches.keys(
-            ))))
+            self.log.info('using matched aliases: {}'.format(matches.keys(
+            )))
             return next(iter(matches.values()))
         else:
             return host
@@ -320,7 +321,7 @@ class BotoManager(object):
 
     def get_all_s3_files(self):
         all_s3_files = {}
-        for s3_inst in list(self.s3_inst_info.keys()):
+        for s3_inst in self.s3_inst_info.keys():
             try:
                 cs_conn = self.connect_to_s3(s3_inst)
             except:
@@ -444,7 +445,7 @@ class BotoManager(object):
 
         file_data = self.load_file(uri=uri)
 
-        if data_type not in list(delimiters.keys()):
+        if data_type not in delimiters.keys():
             print("Unable to process data type %s" % data_type)
             print("Valid data types:")
             print(list(delimiters.keys()))
@@ -471,8 +472,8 @@ class BotoManager(object):
                             if not header:
                                 header = line.strip('\n').split(delimiter)
                             else:
-                                line_data = dict(list(zip(header, line.strip('\n')\
-                                                            .split(delimiter))))
+                                line_data = dict(zip(header, line.strip('\n')\
+                                                            .split(delimiter)))
                                 key_data.append(line_data)
                     else:
                         # ok, let's see if we can be smart here

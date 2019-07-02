@@ -14,7 +14,7 @@ def sort_dict(tree, remove_keys=None):
     if isinstance(tree, dict):
         return {
             key: sort_dict(tree[key], remove_keys=remove_keys)
-            for key in list(tree.keys()) if key not in remove_keys
+            for key in tree if key not in remove_keys
         }
     elif isinstance(tree, list):
         return sorted(
@@ -34,7 +34,7 @@ def remove_keys_from_dict(tree, remove_keys):
     if isinstance(tree, dict):
         return {
             key: remove_keys_from_dict(tree[key], remove_keys)
-            for key in list(tree.keys()) if key not in remove_keys
+            for key in tree if key not in remove_keys
         }
     elif isinstance(tree, list):
         return [

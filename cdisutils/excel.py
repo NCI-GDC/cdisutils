@@ -3,6 +3,8 @@ import openpyxl
 from io import BytesIO
 from cdisutils.log import get_logger
 from cdisutils.storage import BotoManager
+from future.standard_library import install_aliases
+install_aliases()
 from urllib.parse import urlparse
 
 log = get_logger(
@@ -132,7 +134,7 @@ def read_sheet(ws=None, num_headers=1):
                 break
 
         if any_data:
-            line_data = dict(list(zip(header, [str(cell.value).strip() for cell in row])))
+            line_data = dict(zip(header, [str(cell.value).strip() for cell in row]))
             sheet_data.append(line_data)
 
     return sheet_data
