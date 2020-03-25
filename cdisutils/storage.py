@@ -259,8 +259,8 @@ class BotoManager(object):
             raise RuntimeError("{} is not an s3 url".format(url))
         host = parsed_url.netloc
         bucket, key = parsed_url.path.split("/", 2)[1:]
-        bucket = self.get_connection(host).get_bucket(bucket)
-        return bucket.get_key(key)
+        bucket = self.get_connection(host).get_bucket(bucket, validate=False)
+        return bucket.get_key(key, validate=False)
 
     def list_buckets(self, host=None):
         total_files = 0
