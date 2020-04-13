@@ -252,7 +252,8 @@ class BotoManager(object):
     def get_connection(self, host):
         return self.conns[self.harmonize_host(host)]
 
-    def get_url(self, url):
+    def get_url(self, url, get_bucket_validate=True, get_bucket_headers=None,
+                get_key_validate=True, get_key_headers=None):
         """
         Parse an s3://host/bucket/key formatted url and return the
         corresponding boto Key object.
@@ -263,8 +264,9 @@ class BotoManager(object):
             raise RuntimeError("{} is not an s3 url".format(url))
         host = parsed_url.netloc
         bucket, key = parsed_url.path.split("/", 2)[1:]
-        bucket = self.get_connection(host).get_bucket(bucket)
-        return bucket.get_key(key)
+        bucket = self.get_connection(host).get_bucket(bucket, validate=get_bucket_validate,
+                                                      headers=get_bucket_headers)
+        return bucket.get_key(key, validate=get_key_validate, headers=get_key_headers)
 
     def list_buckets(self, host=None):
         total_files = 0
