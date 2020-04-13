@@ -15,7 +15,11 @@ from boto.s3 import connection
 from dateutil import parser
 from datetime import timedelta, datetime
 from indexclient.client import IndexClient
-from urlparse import urlparse
+from future.utils import iteritems
+from future.standard_library import install_aliases
+install_aliases()
+
+from urllib.parse import urlparse
 
 import hashlib
 import json
@@ -158,7 +162,7 @@ class BotoManager(object):
         """
         Config map should be a map from hostname to args, e.g.:
         {
-            "s3.amazonaws.com": {
+            "cleversafe.service.consul: {
                 "aws_access_key_id": "foo",
                 "aws_secret_access_key": "bar",
                 "is_secure": False,
@@ -169,11 +173,11 @@ class BotoManager(object):
         :param host_aliases:
             A *REGEX* map from names that match the regex to hostnames
             provided in config
-            e.g. ``{'aws\.accesssor1\.mirror': 's3.amazonaws.com'}``
+            e.g. ``{'aws\.accessor1\.mirror': 'cleversafe.service.consul'}``
         """
 
         self.config = config
-        for host, kwargs in self.config.iteritems():
+        for host, kwargs in iteritems(self.config):
             # we need to pass the host argument in when we connect, so
             # set it here
             kwargs["host"] = host
@@ -219,7 +223,7 @@ class BotoManager(object):
         return self.conns.keys()
 
     def connect(self):
-        for host, kwargs in self.config.iteritems():
+        for host, kwargs in iteritems(self.config):
             self.conns[host] = connect_s3(**kwargs)
 
     def new_connection_to(self, host):
@@ -231,7 +235,7 @@ class BotoManager(object):
     def harmonize_host(self, host):
         matches = {
             alias: aliased_host
-            for alias, aliased_host in self.host_aliases.iteritems()
+            for alias, aliased_host in iteritems(self.host_aliases)
             if re.match(alias, host)
         }
 
@@ -241,7 +245,7 @@ class BotoManager(object):
         if matches:
             self.log.info('using matched aliases: {}'.format(matches.keys(
             )))
-            return next(matches.itervalues())
+            return next(iter(matches.values()))
         else:
             return host
 
@@ -289,7 +293,7 @@ class BotoManager(object):
                     bucket = self.conns[host].get_bucket(bucket_name)
                 except Exception as e:
                     if e.error_code == 'NoSuchBucket':
-                        print 'Bucket not found'
+                        print('Bucket not found')
                     else:
                         self.log.error(e)
             else:
@@ -444,15 +448,15 @@ class BotoManager(object):
         file_data = self.load_file(uri=uri)
 
         if data_type not in delimiters.keys():
-            print "Unable to process data type %s" % data_type
-            print "Valid data types:"
-            print delimiters.keys()
+            print("Unable to process data type %s" % data_type)
+            print("Valid data types:")
+            print(list(delimiters.keys()))
         else:
             if data_type == 'other':
                 if custom_delimiter:
                     delimiter = custom_delimiter
                 else:
-                    print "With data_type 'other', a delimiter is needed"
+                    print("With data_type 'other', a delimiter is needed")
                     raise
             else:
                 delimiter = delimiters[data_type]
@@ -479,7 +483,7 @@ class BotoManager(object):
                         #    remaining_chars = set([c for c in line if not c.isalnum()])
                         skipped_lines += 1
 
-        print '%d lines in file, %d processed' % (len(file_data.split('\n')), len(key_data))
+        print('%d lines in file, %d processed' % (len(file_data.split('\n')), len(key_data)))
         return key_data
 
     def md5_s3_key(self, conn, which_bucket, key_name, chunk_size=16777216):
@@ -508,16 +512,16 @@ class BotoManager(object):
             except:
                 if len(chunk) == 0:
                     if retries > 10:
-                        print "Error reading bytes"
+                        print("Error reading bytes")
                         error = True
                         break
                     else:
                         retries += 1
-                        print "%d: Error reading bytes, retry %d" % (id, retries)
+                        print("%d: Error reading bytes, retry %d" % (id, retries))
                         time.sleep(2)
                 else:
-                    print "%d: Error %s reading bytes, got %d bytes" % (
-                        id, str((sys.exc_info())[1]), len(chunk))
+                    print("%d: Error %s reading bytes, got %d bytes" % (
+                        id, str((sys.exc_info())[1]), len(chunk)))
                     total_transfer = total_transfer + len(chunk)
                     m.update(chunk)
                     sha.update(chunk)
