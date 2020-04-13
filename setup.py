@@ -8,6 +8,7 @@ setup(
     packages=["cdisutils"],
     install_requires=[
         'setuptools',
+        'attrs==19.1.0',
         'xmltodict==0.9.2',
         'pyOpenSSL==16.2.0',
         'openpyxl==2.4.0',
