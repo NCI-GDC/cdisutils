@@ -2,7 +2,10 @@ from setuptools import setup
 
 setup(
     name="cdisutils",
-    version="0.1.1",
+    use_scm_version={
+        'local_scheme': 'dirty-tag',
+    },
+    setup_requires=['setuptools_scm'],
     description="Miscellaneous utilities useful for interaction with CDIS systems.",
     license="Apache",
     packages=["cdisutils"],
