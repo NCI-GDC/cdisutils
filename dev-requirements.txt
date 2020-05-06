@@ -7,3 +7,5 @@ pytest==3.4.1
 tox==3.13.1
 -e git+https://github.com/uc-cdis/cdis-python-utils.git@0.2.8#egg=cdispyutils # required by indexd
 -e git+https://github.com/uc-cdis/cdisutils-test.git@0.2.2#egg=cdisutilstest
+pre-commit==1.21.0
+cfgv==2.0.1
