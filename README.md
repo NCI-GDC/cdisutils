@@ -5,6 +5,22 @@
 
 Various utilities useful for working on cdis systems.
 
+
+- [cdisutils](#cdisutils)
+  - [`cdisutils.net`](#cdisutilsnet)
+    - [`no_proxy`](#no_proxy)
+  - [`cdisutils.storage`](#cdisutilsstorage)
+    - [`is_probably_swift_segments(obj)`](#is_probably_swift_segmentsobj)
+    - [`swift_stream(obj)`](#swift_streamobj)
+  - [`cdisutils.log`](#cdisutilslog)
+    - [`get_logger(name)`](#get_loggername)
+  - [`cdisutils.tungsten`](#cdisutilstungsten)
+  - [`cdisutils.settings`](#cdisutilssettings)
+- [Setup pre-commit hook to check for secrets](#setup-pre-commit-hook-to-check-for-secrets)
+- [contributing](#contributing)
+
+---
+
 A few modules:
 
 ## `cdisutils.net`
@@ -36,12 +52,12 @@ Simple logging setup.
 
 ### `get_logger(name)`
 
-Returns an basic stdlib `Logger` object that logs to stdout with a
+Returns a basic stdlib `Logger` object that logs to stdout with a
 reasonable format string, set to level INFO.
 
 ## `cdisutils.tungsten`
 
-Utilites for working with tungsten provisioned machines
+Utilities for working with tungsten provisioned machines
 
 ## `cdisutils.settings`
 
