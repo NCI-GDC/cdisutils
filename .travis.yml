@@ -1,8 +1,10 @@
 language: python
+dist: xenial
 python:
   - "2.7"
+  - "3.5"
+before_install:
+   sudo rm -f /etc/boto.cfg
 install:
-  - export BOTO_CONFIG=/dev/null
-  - python setup.py install
-  - pip install -r dev-requirements.txt -r requirements.txt
-script: "py.test -v"
+   pip install tox-travis
+script: tox

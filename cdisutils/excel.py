@@ -3,7 +3,9 @@ import openpyxl
 from io import BytesIO
 from cdisutils.log import get_logger
 from cdisutils.storage import BotoManager
-from urlparse import urlparse
+from future.standard_library import install_aliases
+install_aliases()
+from urllib.parse import urlparse
 
 log = get_logger(
     "excel"
@@ -161,13 +163,13 @@ def load_spreadsheet_from_s3(boto_man=None,
     try:
         wb = openpyxl.load_workbook(filename=BytesIO(file_data))
     except Exception as e:
-        print 'Hmm, something wrong: {}'.format(e)
+        print('Hmm, something wrong: {}'.format(e))
         if key_name.endswith('xls'):
-            print 'Loading as xlsx'
+            print('Loading as xlsx')
             wb = openpyxl.load_workbook(filename=BytesIO(file_data),
                                         data_only=False)
         else:
-            print 'Loading as xls'
+            print('Loading as xls')
             wb = openpyxl.load_workbook(filename=BytesIO(file_data),
                                         data_only=True)
     else:

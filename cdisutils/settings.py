@@ -56,7 +56,7 @@ class Settings:
         try:
             with open(self.path, 'r') as yaml_file:
                 self.settings = yaml.load(yaml_file)
-        except Exception, msg:
+        except Exception as msg:
             logging.error("Unable to load settings from {path}: {msg}".format(path = path, msg = str(msg)))
             logging.info("Proceeding with no settings")
         else:
