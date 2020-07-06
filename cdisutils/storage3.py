@@ -384,11 +384,8 @@ class Boto3Manager(object):
                 "Unable to complete mulitpart %s: %s" % (mp_info["mp_id"], exception)
             )
 
-    def upload_multipart_chunk(self, mp_info=None, set_proxy=False):
+    def upload_multipart_chunk(self, mp_info):
         """ Uploads a multipart chunk of an object """
-        if set_proxy:
-            os.environ["http_proxy"] = "http://cloud-proxy:3128"
-            os.environ["https_proxy"] = "http://cloud-proxy:3128"
 
         mp_info["stream_buffer"].seek(0)
         try:
@@ -415,23 +412,9 @@ class Boto3Manager(object):
             mp_info["manifest"]["Parts"].append(mp_info_part)
             mp_info["chunk_index"] += 1
 
-        if set_proxy:
-            del os.environ["https_proxy"]
-            del os.environ["http_proxy"]
-
-    def download_object_part(self, key=None, set_proxy=False):
+    def download_object_part(self, key):
         """ Downloads a chunk of an object """
-        if set_proxy:
-            os.environ["http_proxy"] = "http://cloud-proxy:3128"
-            os.environ["https_proxy"] = "http://cloud-proxy:3128"
-
-        chunk = key.read(amt=self.chunk_size)
-
-        if set_proxy:
-            del os.environ["https_proxy"]
-            del os.environ["http_proxy"]
-
-        return chunk
+        return key.read(amt=self.chunk_size)
 
     def copy_multipart_file(
         self, src_info=None, dst_info=None, stream_status=True, msg_id=0
