@@ -32,30 +32,26 @@ class S3URLParser:
         Old: s3://url/bucket_name/key/name/at/the/end
         New: https://bucket.url/key/name/at/the/end
         """
-        parse_object = urlparse(self._s3_url)
-
-        self.scheme = parse_object.scheme
-        self.netloc = parse_object.netloc
 
         # (scheme, bucket, netloc, path)
-        aws_regex = re.compile(r"^(s3|https?):\/\/([^\.\s]+)\.?(s3.*\.amazonaws\.com)\/(.+)$")
-        aws_match = aws_regex.match(self._s3_url)
-        if aws_match:
-            aws_groups = aws_match.groups()
+        new_style_match = re.match(
+            r"^(s3|https?):\/\/([^\.\s]+)\.(s3.*\.amazonaws\.com)\/(.+)$",
+            self._s3_url,
+        )
+        if new_style_match:
+            # New style url (bucket in netloc).
+            new_style_groups = new_style_match.groups()
 
-            self.scheme = aws_groups[0]
-            self.netloc = aws_groups[2]
-
-            if aws_groups[1] != '':
-                # If the bucket is before the netloc, it's a new style url.
-                self.bucket = aws_groups[1]
-                self.key = aws_groups[3]
-            else:
-                # Else get the bucket from the path.
-                path_parts = aws_groups[3].split('/', 1)
-                self.bucket = path_parts[0]
-                self.key = path_parts[1]
+            self.scheme = new_style_groups[0]
+            self.netloc = new_style_groups[2]
+            self.bucket = new_style_groups[1]
+            self.key = new_style_groups[3]
         else:
+            # Old style url (bucket in path).
+            parse_object = urlparse(self._s3_url)
+
+            self.scheme = parse_object.scheme
+            self.netloc = parse_object.netloc
             # eg ['', 'bucket', 'key/name/goes/here']
             path_parts = parse_object.path.split('/', 2)
 
