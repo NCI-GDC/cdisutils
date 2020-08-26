@@ -13,9 +13,6 @@ INDEXD_CONFIG = dict(host='localhost', port=8000, auth=())
 @pytest.fixture
 def storage_client():
     return StorageClient.from_configs({
-        'indexd_client': {
-            'baseurl': 'http://localhost:8000'
-        },
         'boto_manager': {
             'config': {
                 "aws_access_key_id": "foo",
@@ -28,7 +25,6 @@ def storage_client():
 
 @pytest.mark.parametrize('config', [
     {
-        'indexd_client': {'baseurl': 'http://localhost:8000'},
         'boto_manager': {
             'config': {
                 'localhost:5555': {
@@ -40,10 +36,6 @@ def storage_client():
             'lazy': True
         }
     }, {
-        'indexd_client': {
-            'baseurl': 'http://localhost:8000',
-            'version': 'v0'
-        },
         'boto_manager': {
             'config': {
                 'localhost:5555': {
@@ -70,7 +62,6 @@ def test_from_configs(config):
 def test_aliased_connections(aliases, host, expected):
     kwargs = {"aws_access_key_id": "", "aws_secret_access_key": ""}
     StorageClient.from_configs(**{
-        'indexd_client': {'baseurl': 'http://localhost:8000'},
         'boto_manager': {
             'config': {
                 'a': kwargs,

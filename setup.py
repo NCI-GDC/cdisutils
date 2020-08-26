@@ -31,9 +31,6 @@ setup(
         "boto~=2.36",
         "boto3~=1.9",
         "future>=0.16,<1.0",
-        # Get indexclient from PyPI.
-        # TODO: See if a newer indexclient would still work.
-        "indexclient~=1.5",
         "python-dateutil~=2.4",
         "PyYAML>=3.11<6.0",
         "six~=1.11",
