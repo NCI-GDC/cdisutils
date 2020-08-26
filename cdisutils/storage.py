@@ -14,7 +14,6 @@ from boto import connect_s3
 from boto.s3 import connection
 from dateutil import parser
 from datetime import timedelta, datetime
-from indexclient.client import IndexClient
 from future.utils import iteritems
 from future.standard_library import install_aliases
 install_aliases()
@@ -74,48 +73,25 @@ class KeyLookupError(LookupError, StorageError):
 
 
 class StorageClient(object):
-    """Class that abstracts away storage interfaces, UUID resolution"""
+    """Class that abstracts away storage interfaces"""
 
     log = get_logger('storage_client')
 
-    def __init__(self, indexd_client, boto_manager):
+    def __init__(self, boto_manager):
         """Constructs a StorageClient
 
-        :param indexd_client:
-            DID resolver IndexdClient object or similar interface
         :param s3_config:
             BotoManager or config for BotoManager
 
         """
-        self.indexd_client = indexd_client
         self.boto_manager = boto_manager
 
     @classmethod
-    def from_configs(cls, indexd_client, boto_manager, **kwargs):
+    def from_configs(cls, boto_manager, **kwargs):
         return cls(
-            indexd_client=IndexClient(**indexd_client),
             boto_manager=BotoManager(**boto_manager),
             **kwargs
         )
-
-    def get_indexd_record(self, uuid):
-        """Fetch Indexd doc from uuid"""
-
-        doc = self.indexd_client.get(uuid)
-
-        if not doc:
-            raise KeyLookupError('Indexd record not found: {}'.format(uuid))
-
-        if not doc.urls:
-            raise KeyLookupError("No urls found for '{}'".format(uuid))
-
-        return doc
-
-    def get_key_from_uuid(self, uuid):
-        """Returns a boto key given a uuid"""
-
-        doc = self.get_indexd_record(uuid)
-        return self.get_key_from_urls(doc.urls)
 
     def get_key_from_urls(self, urls):
         """Loop through list of urls to fetch boto key
