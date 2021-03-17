@@ -22,6 +22,7 @@ venv/
 *.egg-info/
 .installed.cfg
 *.egg
+.eggs
 
 # PyInstaller
 #  Usually these files are written by a python script from a template
@@ -34,7 +35,9 @@ pip-log.txt
 pip-delete-this-directory.txt
 
 # Unit test / coverage reports
+.pytest_cache/
 htmlcov/
+test-reports/
 .tox/
 .coverage
 .cache
@@ -56,3 +59,13 @@ target/
 
 # IDEs
 .idea/
+.vscode/
+
+# Databases
+*.sq3
+
+# temp files
+*.swp
+
+# pyenv
+.python-version

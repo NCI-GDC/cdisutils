@@ -1,30 +1,48 @@
 #!/usr/bin/env python
 
-from novaclient import client
-import os, sys
 from argparse import ArgumentParser
+from collections import namedtuple, defaultdict, Counter
+from novaclient import client
 
-output_types = ["cores", "ram", "disk", "services", "totals", "all"]
-total_suffixes = {
-    'cores': 'cores',
-    'ram': 'MB',
-    'disk': 'MB'
+import novaclient
+import logging
+import os
+import re
+import sys
+
+logger = logging.getLogger(__name__)
+logging.basicConfig(level=logging.INFO)
+
+COLUMN_WIDTH = 30
+TREE = '|  '
+
+RESOURCES = ['cores', 'disk', 'ram']
+
+OUTPUT_TYPES = RESOURCES + [
+    "all",
+    # if not all, must specify all outputs you want:
+    "totals",
+    "maxes",
+]
+
+SUFFIXES = {
+    'cores': '',
+    'ram': 'GB',
+    'disk': 'GB'
 }
 
-def parse_cmd_args():
-    parser = ArgumentParser()
-    parser.add_argument("which_av", 
-        help="availability zone to use",
-        choices=["1", "2", "all"] 
-    )
-    parser.add_argument("--output",
-        help="which output to show",
-        nargs='+',
-        default="all",
-        choices=output_types)
-    args = parser.parse_args()
+Service = namedtuple('Service', ['name', 'flavor'])
 
-    return args
+HostStats = namedtuple('HostStats', [
+    'total_disk',
+    'total_cores',
+    'total_ram',
+    'used_disk',
+    'used_cores',
+    'used_ram',
+    'services',
+])
+
 
 def fix_av_url(zone):
     base_av_url_str = "api-gdc-av"
@@ -37,169 +55,268 @@ def fix_av_url(zone):
     new_url = "%s//%s/%s/" % (parts1[0], '.'.join(parts2), parts1[2])
     return new_url
 
-def print_server_info(
-    avail_zone_data,
-    output_status):
-    for key3, val3 in avail_zone_data.iteritems():
-        output_total = False
-        print "*** AVAIL ZONE: %s ***" % key3
-        for key, val in val3.iteritems():
-            output_total = False
-            totals = {
-                    'cores': 0, 'ram': 0, 'disk': 0, 'services': 0
-            }
-            if len(val):
-                print "REGION: %s" % key
-                for key2, val2 in val.iteritems():
-                    services = False
-                    first = True
-                    sys.stdout.write(" * ")
-                    host_title_str = "%7s:" % key2
-                    sys.stdout.write(host_title_str)
-                    for out_str, out_flag in output_status.iteritems():
-                        if out_flag:
-                            if out_str in total_suffixes.keys():
-                                used_str = "used_%s" % out_str
-                                total_str = "total_%s" % out_str
-                                if len(str(val2[used_str])) > len(str(val2[total_str])):
-                                    out_len = len(str(val2[used_str]))
-                                else:
-                                    out_len = len(str(val2[total_str]))
-                                percent_used = float(val2[used_str]) / float(val2[total_str]) * 100.0
-                                output_write_str = "%%s: %%%dd/%%%dd (%%6.02f%%%%)" % (out_len, out_len)
-                                if not first:
-                                    prepend = " # "
-                                else:
-                                    prepend = " "
-                                    first = False
-                                sys.stdout.write(output_write_str % (
-                                    prepend + out_str.upper(),
-                                    val2[used_str], val2[total_str], 
-                                    percent_used
-                                    ))
-                                totals[out_str] += val2[used_str]
-                            else:
-                                if out_str == 'services':
-                                    services = True
-                                if out_str == 'totals':
-                                    output_total = True
-               
-                    print
-                    if services:
-                        local_services = 0
-                        service_strs = ""
-                        for service in val2['services']:
-                            service_strs += (service + ", ")
-                            totals['services'] += 1
-                            local_services += 1
-                        print "  = services(%2d): %s" % (local_services, service_strs.rstrip(", "))
 
-                if output_total:
-                    sys.stdout.write("TOTALS: ")
-                    for tot_type, tot_val in totals.iteritems():
-                        if tot_val:
-                            if tot_type != 'cores':
-                                if tot_type != 'services':
-                                    sys.stdout.write("%d %s %s  " % (
-                                        tot_val, 
-                                        total_suffixes[tot_type], 
-                                        tot_type.upper()))
-                                else:
-                                    sys.stdout.write("%d %s  " % (
-                                        tot_val, tot_type))
+def tree(level):
+    return TREE * level + '+ '
 
-                            else:
-                                sys.stdout.write("%d %s  " % (
-                                    tot_val, 
-                                    total_suffixes[tot_type], 
-                                    ))
-                print
-                print
 
-# init
-avail_zones = {}
-machines = {}
-output = {
-    'cores': True,
-    'ram': True,
-    'disk': True,
-    'services': True,
-    'totals': True
-}
-node_info = {
-    'total_cores': 0,
-    'total_ram': 0,
-    'total_disk': 0,
-    'used_cores': 0,
-    'used_ram': 0,
-    'used_disk': 0,
-    'services': []
-}
-os_urls = []
+def get_client(url, os_version="2.0"):
+    """Returns a nova client"""
 
-args = parse_cmd_args()
-
-# figure out zone
-if args.which_av == "all":
-    urls_to_use = [1, 2]
-else:
-    urls_to_use = [int(args.which_av)]
-for url in urls_to_use:
-    os_urls.append(fix_av_url(url))
-os_version = "2.0"
-
-# figure out output
-if "all" not in args.output:
-    for entry in output_types:
-        if entry not in args.output:
-            output[entry] = False
-
-for url in os_urls:
-    with client.Client(
+    return client.Client(
         os_version,
         os.environ['OS_USERNAME'],
         os.environ['OS_PASSWORD'],
         os.environ['OS_TENANT_NAME'], #PROJECT_ID
         url
-    ) as nova:
-        az_info = {}
-        for az in nova.availability_zones.list():
-            if az.hosts:
-              zone = {}
-              for host in az.hosts:
-                  val = dict(node_info)
-                  try:
-                      nova_host = nova.hosts.get(host)
-                      val['total_cores'] = nova_host[0].cpu
-                      val['total_disk'] = nova_host[0].disk_gb
-                      val['total_ram'] = nova_host[0].memory_mb
-                      val['used_cores'] = nova_host[1].cpu
-                      val['used_disk'] = nova_host[1].disk_gb
-                      val['used_ram'] = nova_host[1].memory_mb
-                      val['services'] = []
-                      zone[host] = val
-                  except Exception as e:
-                      print "Can't access {}: {}".format(host, e)
-                      pass
-              az_info[az.zoneName] = zone
-        az_tag = url.find("av")
-        cur_av_zone = url[az_tag:az_tag+3]
-        if cur_av_zone not in avail_zones:
-            avail_zones[cur_av_zone] = az_info
-        # get servers and flavors
-        servers = nova.servers.list()
-        flavors = nova.flavors.list()
-        # get information
-        for server in servers:
-            az_str = getattr(server, 'OS-EXT-AZ:availability_zone')
-            
-            cur_zone = avail_zones[cur_av_zone][az_str]
-            host_str = getattr(server, 'OS-EXT-SRV-ATTR:host')
-            if host_str:
-                cur_host = cur_zone[host_str]
-                cur_flavor = nova.flavors.get(server.flavor['id'])
-                cur_host['services'].append(server.human_id)
+    )
 
-# print information
-print_server_info(avail_zones, output)
+# ======================================================================
+# Stats
 
+
+def get_host_stats(nova_host, servers=None):
+    return HostStats(
+        nova_host[0].disk_gb,
+        nova_host[0].cpu,
+        nova_host[0].memory_mb / 1e3,
+        nova_host[1].disk_gb,
+        nova_host[1].cpu,
+        nova_host[1].memory_mb / 1e3,
+        servers if servers is not None else [],
+    )
+
+
+def parse_server_info(url, nova, options):
+    """Returns {'az': {'host': [Service]}}"""
+
+    logging.info('Getting server info for %s', url)
+
+    az_tag = url.find("av")
+    az_name = url[az_tag:az_tag+3]
+    server_info = defaultdict(lambda: defaultdict(list))
+
+    for server in nova.servers.list():
+        az_name = getattr(server, 'OS-EXT-AZ:availability_zone')
+        host_name = getattr(server, 'OS-EXT-SRV-ATTR:host', None)
+        flavor = nova.flavors.get(server.flavor['id'])
+        service = Service(server.human_id, flavor)
+        server_info[az_name][host_name].append(service)
+
+    return server_info
+
+
+def parse_host_info(nova, az, server_info, options):
+    """Returns a list of HostStats objects"""
+
+    region = az.zoneName
+
+    if options.get('region') and not re.match(options['region'], region):
+        return {}
+
+    logging.info('Getting host info for %s', region)
+
+    hosts = {}
+    for host_name in az.hosts:
+        try:
+            nova_host = nova.hosts.get(host_name)
+        except Exception as e:
+            logger.error("Can't access %s: %s", host_name, e)
+        else:
+            host_servers = server_info[region][host_name]
+            host = get_host_stats(nova_host, host_servers)
+
+            # Filter to hosts that can fit flavor
+            add_host = True
+            if options.get('flavor', None):
+                try:
+                    flavor = nova.flavors.get(options['flavor'])
+                except novaclient.exceptions.NotFound:
+                    add_host = False
+                else:
+                    add_host = (
+                        flavor.ram < (host.total_ram - host.used_ram)*1e3
+                        and flavor.disk < (host.total_disk - host.used_disk)
+                        and flavor.vcpus < (host.total_cores - host.used_cores))
+
+            if add_host:
+                hosts[host_name] = host
+
+    return hosts
+
+
+def parse_availability_zone(url, options):
+    with get_client(url) as nova:
+        server_info = parse_server_info(url, nova, options)
+        zones = {
+            az.zoneName: parse_host_info(nova, az, server_info, options)
+            for az in nova.availability_zones.list()
+        }
+
+    return zones
+
+
+# ======================================================================
+# Output
+
+
+def format_stat(used, total, unit):
+    out_len = max(len(str(int(used))), len(str(int(total))))
+    if float(total):
+        percent_used = float(used) / float(total) * 100.0
+    else:
+        percent_used = 0
+
+    if int(percent_used) < 100:
+        output_format = "%%%dd/%%%dd %%s (%%6.02f%%%% )" % (out_len, out_len)
+        return output_format % (used, total, unit, percent_used)
+
+    else:
+        output_format = "%%%dd/%%%dd %%s (  full  )" % (out_len, out_len)
+        return output_format % (used, total, unit)
+
+
+def get_host_usage(host_stats, resource):
+    """Returns (used, total) for given HostStats"""
+
+    return (getattr(host_stats, 'used_'+resource),
+            getattr(host_stats, 'total_'+resource))
+
+
+def format_host_stats(name, host, options):
+    repr_ = name.ljust(10) + ': '
+
+    # Print resource, e.g. cores, disk, ..
+    for resource in RESOURCES:
+        if options.get(resource, False):
+            used, total = get_host_usage(host, resource)
+            stat = format_stat(used, total, SUFFIXES[resource])
+            column = ' %s: %s' % (resource, stat)
+            repr_ += column.center(COLUMN_WIDTH, ' ')
+
+    if options.get('services', False):
+        repr_ += '\n' + tree(3) + '= services(%2d): ' % len(host.services)
+        repr_ += ', '.join([service.name for service in host.services])
+
+    return repr_
+
+
+def accum_totals(accum, item):
+    return [accum[i] + item[i] for i in range(len(item))]
+
+
+def format_resource_counts(hosts, resource):
+    """Returns string info on sorted from hosts {hostname: [host_stats]} and
+    given resource name (e.g. cores)
+
+    """
+
+    usages = (get_host_usage(host, resource) for host in hosts.values())
+    counter = Counter(usage[1] - usage[0] for usage in usages)
+    counts = counter.items()
+    counts = reversed(sorted(counts))
+    count_strs = ['%5dx%s %s' % (k, v, SUFFIXES[resource]) for k, v in counts]
+    top_counts = ' '.join(count_strs[:3])
+
+    return 'max %s: %s' % (resource.ljust(5), top_counts)
+
+
+def print_region(name, hosts, options):
+    """Print all the stats for an az `hosts` {host_name: HostStats}"""
+
+    if options.get('region') and not re.match(options['region'], name):
+        return
+
+    print tree(1) + "Region: {}".format(name)
+
+    if set(options) & set(RESOURCES):
+        for host_name, host_stats in hosts.iteritems():
+            print tree(3) + format_host_stats(host_name, host_stats, options)
+
+    if options.get('totals', False) and hosts:
+        totals = HostStats(*reduce(accum_totals, hosts.values()))
+        totals_options = {option: True for option in OUTPUT_TYPES}
+        totals_options.update(services=False)
+        print format_host_stats(tree(2)+'Totals', totals, totals_options),
+        print '%3d services' % len(totals.services)
+
+    if options.get('maxes', False) and hosts:
+        print tree(2) + format_resource_counts(hosts, 'cores')
+        print tree(2) + format_resource_counts(hosts, 'disk')
+        print tree(2) + format_resource_counts(hosts, 'ram')
+
+
+def print_availability_zones(availability_zones, options):
+    """Print all the stats for an az {name: zone}"""
+
+    print
+    for az_name, zone in availability_zones.iteritems():
+        print tree(0) + "Availability Zone: %s" % az_name
+        for zone_name, hosts in zone.iteritems():
+            print_region(zone_name, hosts, options)
+    print
+
+
+# ======================================================================
+# Script
+
+def parse_cmd_args():
+    parser = ArgumentParser()
+    parser.add_argument("availability_zone",
+                        help="availability zone to use",
+                        nargs='?',
+                        default='all',
+                        choices=["1", "2", "all"])
+    parser.add_argument('-o', "--output",
+                        help="If not 'all' include any output types to show.",
+                        default=[],
+                        action='append',
+                        choices=OUTPUT_TYPES)
+    parser.add_argument('-s', "--services",
+                        help="Include list of services running per host",
+                        action='store_true')
+    parser.add_argument('-r', "--region",
+                        help="Region regex (e.g. `compute_1`)",
+                        default=None)
+    parser.add_argument('-f', "--flavor-fits",
+                        help="Filter hosts out that flavor can't fit on",
+                        default=None)
+    args = parser.parse_args()
+
+    return args
+
+
+def main():
+    os_version = "2.0"
+
+    args = parse_cmd_args()
+
+    # figure out zone
+    if args.availability_zone == "all":
+        os_urls = map(fix_av_url, [1, 2])
+    else:
+        os_urls = map(fix_av_url, [int(args.availability_zone)])
+
+    # figure out output
+    if "all" in args.output or not args.output:
+        options = {option: True for option in OUTPUT_TYPES}
+    else:
+        options = {option: True for option in args.output}
+
+    if args.services:
+        options['services'] = True
+
+    options['region'] = args.region
+    options['flavor'] = args.flavor_fits
+
+    # Collect stats
+    availability_zones = {
+        url[url.find("av"):][:3]: parse_availability_zone(url, options)
+        for url in os_urls
+    }
+
+    print_availability_zones(availability_zones, options)
+
+
+if __name__ == '__main__':
+    main()

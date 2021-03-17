@@ -59,8 +59,8 @@ class BotoUtilsTest(TestCase):
         manager = BotoManager(config)
         manager.get_url("s3://s3.amazonaws.com/bucket/dir/key")
         mock = manager["s3.amazonaws.com"]
-        self.assertIn(call.get_bucket("bucket"), mock.mock_calls)
-        self.assertIn(call.get_bucket().get_key("dir/key"), mock.mock_calls)
+        self.assertIn(call.get_bucket("bucket", headers=None, validate=True), mock.mock_calls)
+        self.assertIn(call.get_bucket().get_key("dir/key",headers=None, validate=True), mock.mock_calls)
         with self.assertRaises(KeyError):
             manager.get_url("s3://fake_host/bucket/dir/key")
 
@@ -99,4 +99,4 @@ class BotoUtilsTest(TestCase):
             key.set_contents_from_string("test")
             (md5, size) = md5sum_with_size(key)
             assert size == key.size
-            assert md5 == key.md5
+            assert md5.encode('ascii') == key.md5

@@ -4,7 +4,7 @@ import os
 import functools
 
 # Migrated to .storage, re-exported to maintain interface
-from storage import (  # noqa
+from .storage import (  # noqa
     BotoManager,
     cancel_stale_multiparts,
     md5sum_with_size,
@@ -30,5 +30,5 @@ class no_proxy(ContextDecorator):
                 self.temp_env[key] = os.environ.pop(key)
 
     def __exit__(self, exc_type, exc_value, traceback):
-        for key, val in self.temp_env.iteritems():
+        for key, val in self.temp_env.items():
             os.environ[key] = val
