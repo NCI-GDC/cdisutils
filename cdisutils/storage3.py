@@ -110,7 +110,9 @@ def load_creds():
     }
     s3_endpoint_defaults = {
         "ceph": "ceph.service.consul",
+        'cephb' : 'gdc-cephb-objstore.osdc.io',
         "cleversafe": "cleversafe.service.consul",
+        'cleversafe_gpas' : 'gdc-gpas-objstore.osdc.io',
         "aws": "s3-external-1.amazonaws.com",
         "jamboree": "gdc-accessors-jamboree.osdc.io",
         "pdc": "bionimbus-objstore-cs.opensciencedatacloud.org",
