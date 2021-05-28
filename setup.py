@@ -7,7 +7,7 @@ with open("README.md") as readme_in:
 
 setup(
     name="cdisutils",
-    setup_requires=["setuptools_scm"],
+    setup_requires=["setuptools_scm<6"],
     use_scm_version={"local_scheme": "dirty-tag"},
     author="Center for Translational Data Science",
     author_email="support@nci-gdc.datacommons.io",
