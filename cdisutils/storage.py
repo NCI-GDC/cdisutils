@@ -13,7 +13,6 @@ import json
 import re
 import socket
 import ssl
-from urllib.parse import urlparse
 
 from boto.compat import http_client
 from boto import config, UserAgent, https_connection
@@ -26,6 +25,7 @@ from future.standard_library import install_aliases
 install_aliases()
 
 from cdisutils.log import get_logger
+from cdisutils.parsers import S3URLParser
 
 # TODO: add tests
 
@@ -46,7 +46,7 @@ class S3ConnectionProxyFix(S3Connection):
     - https://github.com/boto/boto/pull/3699
     """
     def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
+        super(S3ConnectionProxyFix, self).__init__(*args, **kwargs)
         self.logger = get_logger("S3ConnectionProxyFix")
 
     def proxy_ssl(self, host=None, port=None):
@@ -154,7 +154,7 @@ def cancel_stale_multiparts(bucket, stale_days=7):
 
 
 def filter_s3_urls(urls):
-    return [url for url in urls if urlparse(url).scheme == 's3']
+    return [url for url in urls if S3URLParser(url).scheme == 's3']
 
 
 class StorageError(Exception):
@@ -327,15 +327,17 @@ class BotoManager(object):
         Parse an s3://host/bucket/key formatted url and return the
         corresponding boto Key object.
         """
-        parsed_url = urlparse(url)
+        parsed_url = S3URLParser(url)
         scheme = parsed_url.scheme
         if scheme != "s3":
             raise RuntimeError("{} is not an s3 url".format(url))
         host = parsed_url.netloc
-        bucket, key = parsed_url.path.split("/", 2)[1:]
-        bucket = self.get_connection(host).get_bucket(bucket, validate=get_bucket_validate,
-                                                      headers=get_bucket_headers)
-        return bucket.get_key(key, validate=get_key_validate, headers=get_key_headers)
+        bucket = self.get_connection(host).get_bucket(
+            parsed_url.bucket,
+            validate=get_bucket_validate,
+            headers=get_bucket_headers,
+        )
+        return bucket.get_key(parsed_url.key, validate=get_key_validate, headers=get_key_headers)
 
     def list_buckets(self, host=None):
         total_files = 0
@@ -451,11 +453,11 @@ class BotoManager(object):
         total_transfer = 0
         chunk = []
         if uri:
-            uri_data = urlparse(uri)
+            uri_data = S3URLParser(uri)
             host = uri_data.netloc
             os_name = uri_data.netloc.split('.')[0]
-            bucket_name = uri_data.path.split('/')[1]
-            key_name = uri_data.path.split('/')[-1]
+            bucket_name = uri_data.bucket
+            key_name = uri_data.key
 
         if not self.conns[host]:
             self.log.info("Making OS connections")
