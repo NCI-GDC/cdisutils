@@ -16,7 +16,7 @@ def connect_s3_mock(*args, **kwargs):
 
 class BotoUtilsTest(TestCase):
 
-    @patch("cdisutils.storage.connect_s3", connect_s3_mock)
+    @patch("cdisutils.storage.S3ConnectionProxyFix", connect_s3_mock)
     def test_basic_connect(self):
         """These tests are admitedly rudimentary. I wanted to use moto but
         moto works by intercepting calls to s3.amazonaws.com, so it
@@ -42,7 +42,7 @@ class BotoUtilsTest(TestCase):
         self.assertEqual(site_conn_mock.host, "s3.myinstallation.org")
         self.assertEqual(site_conn_mock.is_secure, False)
 
-    @patch("cdisutils.storage.connect_s3", connect_s3_mock)
+    @patch("cdisutils.storage.S3ConnectionProxyFix", connect_s3_mock)
     def test_get_url(self):
         config = {
             "s3.amazonaws.com": {
