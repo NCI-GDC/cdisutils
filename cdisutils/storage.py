@@ -24,8 +24,8 @@ from future.utils import iteritems
 from future.standard_library import install_aliases
 install_aliases()
 
-from cdisutils.log import get_logger
-from cdisutils.parsers import S3URLParser
+import cdisutils.log
+import cdisutils.parsers
 
 # TODO: add tests
 
@@ -47,7 +47,7 @@ class S3ConnectionProxyFix(S3Connection):
     """
     def __init__(self, *args, **kwargs):
         super(S3ConnectionProxyFix, self).__init__(*args, **kwargs)
-        self.logger = get_logger("S3ConnectionProxyFix")
+        self.logger = cdisutils.log.get_logger("S3ConnectionProxyFix")
 
     def proxy_ssl(self, host=None, port=None):
         if host and port:
@@ -154,7 +154,7 @@ def cancel_stale_multiparts(bucket, stale_days=7):
 
 
 def filter_s3_urls(urls):
-    return [url for url in urls if S3URLParser(url).scheme == 's3']
+    return [url for url in urls if cdisutils.parsers.S3URLParser(url).scheme == 's3']
 
 
 class StorageError(Exception):
@@ -168,7 +168,7 @@ class KeyLookupError(LookupError, StorageError):
 class StorageClient(object):
     """Class that abstracts away storage interfaces"""
 
-    log = get_logger('storage_client')
+    log = cdisutils.log.get_logger('storage_client')
 
     def __init__(self, boto_manager):
         """Constructs a StorageClient
@@ -221,7 +221,7 @@ class BotoManager(object):
     which can be used transparently through this object.
     """
 
-    log = get_logger('boto_manager')
+    log = cdisutils.log.get_logger('boto_manager')
 
     def __init__(self,
                  config={},
@@ -327,7 +327,7 @@ class BotoManager(object):
         Parse an s3://host/bucket/key formatted url and return the
         corresponding boto Key object.
         """
-        parsed_url = S3URLParser(url)
+        parsed_url = cdisutils.parsers.S3URLParser(url)
         scheme = parsed_url.scheme
         if scheme != "s3":
             raise RuntimeError("{} is not an s3 url".format(url))
@@ -453,7 +453,7 @@ class BotoManager(object):
         total_transfer = 0
         chunk = []
         if uri:
-            uri_data = S3URLParser(uri)
+            uri_data = cdisutils.parsers.S3URLParser(uri)
             host = uri_data.netloc
             os_name = uri_data.netloc.split('.')[0]
             bucket_name = uri_data.bucket
