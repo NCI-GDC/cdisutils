@@ -14,10 +14,8 @@ import re
 import socket
 import ssl
 
-from boto.compat import http_client
-from boto import config, UserAgent, https_connection
-from boto.s3.connection import S3Connection
-from boto.s3 import connection
+import boto
+from boto.s3 import connection as boto_connection
 from dateutil import parser
 from datetime import timedelta, datetime
 from future.utils import iteritems
@@ -29,7 +27,7 @@ import cdisutils.parsers
 install_aliases()
 
 
-class S3ConnectionProxyFix(S3Connection):
+class S3ConnectionProxyFix(boto_connection.S3Connection):
     """Custom S3Connection class to workaround boto proxy issue.
 
     This fix will apply to any Python 3 boto code that attempts to interact with
@@ -50,9 +48,9 @@ class S3ConnectionProxyFix(S3Connection):
 
     def _get_host(self, host=None, port=None):
         if host and port:
-            return '%s:%d' % (host, port)
+            return "%s:%d" % (host, port)
         else:
-            return '%s:%d' % (self.host, self.port)
+            return "%s:%d" % (self.host, self.port)
 
     def _get_socket(self):
         timeout = self.http_connection_kwargs.get("timeout")
@@ -63,20 +61,20 @@ class S3ConnectionProxyFix(S3Connection):
     def _send_header(self, sock, host):
         self.logger.debug("Proxy connection: CONNECT %s HTTP/1.0\r\n", host)
         sock.sendall(("CONNECT %s HTTP/1.0\r\n" % host).encode())
-        sock.sendall(("User-Agent: %s\r\n" % UserAgent).encode())
+        sock.sendall(("User-Agent: %s\r\n" % boto.UserAgent).encode())
         if self.proxy_user and self.proxy_pass:
             for k, v in iteritems(self.get_proxy_auth_header()):
                 sock.sendall(("%s: %s\r\n" % (k, v)).encode())
             # See discussion about this config option at
             # https://groups.google.com/forum/?fromgroups#!topic/boto-dev/teenFvOq2Cc
-            if config.getbool('Boto', 'send_crlf_after_proxy_auth_headers', False):
+            if boto.config.getbool("Boto", "send_crlf_after_proxy_auth_headers", False):
                 sock.sendall(b"\r\n")
         else:
             sock.sendall(b"\r\n")
 
     def _check_conn(self, sock):
         try:
-            resp = http_client.HTTPResponse(sock, debuglevel=self.debug)
+            resp = boto.compat.http_client.HTTPResponse(sock, debuglevel=self.debug)
             resp.begin()
 
             if resp.status != 200:
@@ -89,7 +87,7 @@ class S3ConnectionProxyFix(S3Connection):
                 )
 
         except Exception as e:
-            print(e)
+            self.logger.error(e)
 
         finally:
             # We can safely close the response, it duped the original socket
@@ -101,7 +99,7 @@ class S3ConnectionProxyFix(S3Connection):
         self._send_header(sock, host)
         self._check_conn(sock)
 
-        h = http_client.HTTPConnection(host)
+        h = boto.compat.http_client.HTTPConnection(host)
 
         if self.https_validate_certificates:
             msg = "wrapping ssl socket for proxied connection; "
@@ -110,24 +108,24 @@ class S3ConnectionProxyFix(S3Connection):
             else:
                 msg += "using system provided SSL certs"
             self.logger.debug(msg)
-            key_file = self.http_connection_kwargs.get('key_file', None)
-            cert_file = self.http_connection_kwargs.get('cert_file', None)
+            key_file = self.http_connection_kwargs.get("key_file", None)
+            cert_file = self.http_connection_kwargs.get("cert_file", None)
             sslSock = ssl.wrap_socket(sock, keyfile=key_file,
                                       certfile=cert_file,
                                       cert_reqs=ssl.CERT_REQUIRED,
                                       ca_certs=self.ca_certificates_file)
             cert = sslSock.getpeercert()
-            hostname = self.host.split(':', 0)[0]
-            if not https_connection.ValidateCertificateHostname(cert, hostname):
-                raise https_connection.InvalidCertificateException(
-                    hostname, cert, 'hostname mismatch')
+            hostname = self.host.split(":", 0)[0]
+            if not boto.https_connection.ValidateCertificateHostname(cert, hostname):
+                raise boto.https_connection.InvalidCertificateException(
+                    hostname, cert, "hostname mismatch")
         else:
             # Fallback for old Python without ssl.wrap_socket
-            if hasattr(http_client, 'ssl'):
-                sslSock = http_client.ssl.SSLSocket(sock)
+            if hasattr(boto.compat.http_client, "ssl"):
+                sslSock = boto.compat.http_client.ssl.SSLSocket(sock)
             else:
                 sslSock = socket.ssl(sock, None, None)
-                sslSock = http_client.FakeSocket(sock, sslSock)
+                sslSock = boto.compat.http_client.FakeSocket(sock, sslSock)
 
         # This is a bit unclean
         h.sock = sslSock
@@ -144,9 +142,9 @@ def url_for_boto_key(key):
 
 
 def md5sum_with_size(iterable):
-    '''
+    """
     Get md5sum and size given an iterable (eg: a boto key)
-    '''
+    """
     md5 = hashlib.md5()
     size = 0
     for chunk in iterable:
@@ -156,10 +154,10 @@ def md5sum_with_size(iterable):
 
 
 def cancel_stale_multiparts(bucket, stale_days=7):
-    '''
+    """
     Cancel uploads that are stale for more than [stale_days]
     File state shouldn't be effected as there might be ongoing upload for this key
-    '''
+    """
     uploads = bucket.get_all_multipart_uploads()
     for upload in uploads:
         initiated = parser.parse(upload.initiated)
@@ -168,7 +166,7 @@ def cancel_stale_multiparts(bucket, stale_days=7):
 
 
 def filter_s3_urls(urls):
-    return [url for url in urls if cdisutils.parsers.S3URLParser(url).scheme == 's3']
+    return [url for url in urls if cdisutils.parsers.S3URLParser(url).scheme == "s3"]
 
 
 class StorageError(Exception):
@@ -182,7 +180,7 @@ class KeyLookupError(LookupError, StorageError):
 class StorageClient(object):
     """Class that abstracts away storage interfaces"""
 
-    log = cdisutils.log.get_logger('storage_client')
+    log = cdisutils.log.get_logger("storage_client")
 
     def __init__(self, boto_manager):
         """Constructs a StorageClient
@@ -209,8 +207,8 @@ class StorageClient(object):
 
         remaining_urls = filter_s3_urls(urls)
         if not urls:
-            raise KeyLookupError('No s3 urls found in {}'.format(urls))
-        self.log.debug('using {} s3 of {}'.format(remaining_urls, urls))
+            raise KeyLookupError("No s3 urls found in {}".format(urls))
+        self.log.debug("using {} s3 of {}".format(remaining_urls, urls))
 
         errors = {}
 
@@ -235,7 +233,7 @@ class BotoManager(object):
     which can be used transparently through this object.
     """
 
-    log = cdisutils.log.get_logger('boto_manager')
+    log = cdisutils.log.get_logger("boto_manager")
 
     def __init__(self,
                  config={},
@@ -264,8 +262,8 @@ class BotoManager(object):
             # we need to pass the host argument in when we connect, so
             # set it here
             kwargs["host"] = host
-            if 'calling_format' not in kwargs:
-                kwargs["calling_format"] = connection.OrdinaryCallingFormat()
+            if "calling_format" not in kwargs:
+                kwargs["calling_format"] = boto_connection.OrdinaryCallingFormat()
 
         self.host_aliases = host_aliases
 
@@ -274,23 +272,23 @@ class BotoManager(object):
             self.connect()
 
         self.s3_inst_info = {
-            'ceph': {
-                'secure': True,
-                'url': 'ceph.service.consul',
-                'access_key': "",
-                'secret_key': ""
+            "ceph": {
+                "secure": True,
+                "url": "ceph.service.consul",
+                "access_key": "",
+                "secret_key": ""
             },
-            'ceph2': {
-                'secure': True,
-                'url': 'gdc-cephb-objstore.osdc.io',
-                'access_key': "",
-                'secret_key': ""
+            "ceph2": {
+                "secure": True,
+                "url": "gdc-cephb-objstore.osdc.io",
+                "access_key": "",
+                "secret_key": ""
             },
-            'cleversafe': {
-                'secure': True,
-                'url': 'gdc-accessors.osdc.io',
-                'access_key': "",
-                'secret_key': ""
+            "cleversafe": {
+                "secure": True,
+                "url": "gdc-accessors.osdc.io",
+                "access_key": "",
+                "secret_key": ""
             }
         }
         self.stream_status = stream_status
@@ -323,10 +321,10 @@ class BotoManager(object):
         }
 
         if len(matches) > 1:
-            self.log.warning('matched multiple aliases: {}'.format(matches))
+            self.log.warning("matched multiple aliases: {}".format(matches))
 
         if matches:
-            self.log.info('using matched aliases: {}'.format(matches.keys(
+            self.log.info("using matched aliases: {}".format(matches.keys(
             )))
             return next(iter(matches.values()))
         else:
@@ -377,8 +375,8 @@ class BotoManager(object):
                     self.log.info("Getting bucket {} from {}".format(bucket_name, host))
                     bucket = self.conns[host].get_bucket(bucket_name)
                 except Exception as e:
-                    if e.error_code == 'NoSuchBucket':
-                        print('Bucket not found')
+                    if e.error_code == "NoSuchBucket":
+                        print("Bucket not found")
                     else:
                         self.log.error(e)
             else:
@@ -469,7 +467,7 @@ class BotoManager(object):
         if uri:
             uri_data = cdisutils.parsers.S3URLParser(uri)
             host = uri_data.netloc
-            os_name = uri_data.netloc.split('.')[0]
+            os_name = uri_data.netloc.split(".")[0]
             bucket_name = uri_data.bucket
             key_name = uri_data.key
 
@@ -509,26 +507,26 @@ class BotoManager(object):
                                 float(total_transfer) / float(file_key.size) * 100.0))
                             sys.stdout.flush()
             else:
-                self.log.warn('Unable to find key {}/{}/{}'.format(os_name, bucket_name, key_name))
+                self.log.warn("Unable to find key {}/{}/{}".format(os_name, bucket_name, key_name))
 
-        self.log.info('{} lines received'.format(len(str(file_data))))
+        self.log.info("{} lines received".format(len(str(file_data))))
         return str(file_data)
 
 
     def parse_data_file(self,
                         uri=None,
-                        data_type='tsv',
+                        data_type="tsv",
                         custom_delimiter=None):
         """Processes loaded data as a tsv, csv, or
         json, returning it as a list of dicts"""
         key_data = []
         header = None
         skipped_lines = 0
-        delimiters = { 'tsv': '\t',
-                       'csv': ',',
-                       'json': '',
-                       'other': ''}
-        other_delimiters = [' ', ',', ';']
+        delimiters = { "tsv": "\t",
+                       "csv": ",",
+                       "json": "",
+                       "other": ""}
+        other_delimiters = [" ", ",", ";"]
 
         file_data = self.load_file(uri=uri)
 
@@ -537,7 +535,7 @@ class BotoManager(object):
             print("Valid data types:")
             print(list(delimiters.keys()))
         else:
-            if data_type == 'other':
+            if data_type == "other":
                 if custom_delimiter:
                     delimiter = custom_delimiter
                 else:
@@ -546,20 +544,20 @@ class BotoManager(object):
             else:
                 delimiter = delimiters[data_type]
 
-            if data_type == 'json':
-                for line in file_data.split('\n'):
+            if data_type == "json":
+                for line in file_data.split("\n"):
                     line_data = json.loads(line)
                     key_data.append(line_data)
             # load as tsv/csv, assuming the first row is the header
             # that provides keys for the dict
             else:
-                for line in file_data.split('\n'):
+                for line in file_data.split("\n"):
                     if delimiter in line:
-                        if len(line.strip('\n').strip()):
+                        if len(line.strip("\n").strip()):
                             if not header:
-                                header = line.strip('\n').split(delimiter)
+                                header = line.strip("\n").split(delimiter)
                             else:
-                                line_data = dict(zip(header, line.strip('\n')\
+                                line_data = dict(zip(header, line.strip("\n")\
                                                             .split(delimiter)))
                                 key_data.append(line_data)
                     else:
@@ -568,19 +566,19 @@ class BotoManager(object):
                         #    remaining_chars = set([c for c in line if not c.isalnum()])
                         skipped_lines += 1
 
-        print('%d lines in file, %d processed' % (len(file_data.split('\n')), len(key_data)))
+        print("%d lines in file, %d processed" % (len(file_data.split("\n")), len(key_data)))
         return key_data
 
     def md5_s3_key(self, conn, which_bucket, key_name, chunk_size=16777216):
         result = {
-            'transfer_time': 0,
-            'bytes_transferred': 0
+            "transfer_time": 0,
+            "bytes_transferred": 0
         }
         m = md5.new()
         sha = hashlib.sha256()
         size = 0
         retries = 0
-        result['start_time'] = time.time()
+        result["start_time"] = time.time()
         error = False
         running = False
         file_key = self.get_file_key(conn, which_bucket, key_name)
@@ -614,9 +612,9 @@ class BotoManager(object):
             else:
                 if len(chunk) == 0:
                     running = False
-                result['bytes_transferred'] += len(chunk)
+                result["bytes_transferred"] += len(chunk)
                 if file_key.size > 0:
-                   sys.stdout.write("%6.02f%%\r" % (float(result['bytes_transferred']) / float(file_key.size) * 100.0))
+                   sys.stdout.write("%6.02f%%\r" % (float(result["bytes_transferred"]) / float(file_key.size) * 100.0))
                 else:
                    sys.stdout.write("0.00%%\r")
 
@@ -624,9 +622,9 @@ class BotoManager(object):
                 m.update(chunk)
                 sha.update(chunk)
                 retries = 0
-        result['transfer_time'] = time.time() - result['start_time']
-        result['md5_sum'] = m.hexdigest()
-        result['sha256_sum'] = sha.hexdigest()
+        result["transfer_time"] = time.time() - result["start_time"]
+        result["md5_sum"] = m.hexdigest()
+        result["sha256_sum"] = sha.hexdigest()
         return result
 
 def is_probably_swift_segments(obj):
