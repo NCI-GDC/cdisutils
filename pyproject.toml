@@ -34,6 +34,12 @@ pre-commit = ">=2.0,<3.0"
 excel = ["openpyxl"]
 nova = ["python-novaclient"]
 
+[tool.poetry-dynamic-versioning]
+dirty = true
+enable = true
+metadata = true
+pattern = "default-unprefixed"
+
 [build-system]
 build-backend = "poetry.core.masonry.api"
 requires = ["poetry-core", "poetry-dynamic-versioning"]
