@@ -1,12 +1,16 @@
 from unittest import TestCase
-from cdisutils.net import BotoManager, cancel_stale_multiparts, md5sum_with_size
-from cdisutils.net import url_for_boto_key
+from unittest.mock import MagicMock, call, patch
 
-
-from boto.s3.connection import S3Connection
 import boto
+from boto.s3.connection import S3Connection
 from moto import mock_s3
-from mock import patch, MagicMock, call
+
+from cdisutils.net import (
+    BotoManager,
+    cancel_stale_multiparts,
+    md5sum_with_size,
+    url_for_boto_key,
+)
 
 
 def connect_s3_mock(*args, **kwargs):
