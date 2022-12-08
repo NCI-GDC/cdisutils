@@ -1,5 +1,5 @@
 [tool.poetry]
-authors = ["Your Name <you@example.com>"]
+authors = ["Genomic Data Commons <support@nci-gdc.datacommons.io>"]
 description = "Various utilities useful for working on cdis systems."
 license = "Apache-2.0"
 name = "cdisutils"
@@ -10,15 +10,16 @@ version = "0.0.0"
 boto = "^2.49.0"
 boto3 = ">=1.0,<2.0"
 future = "^0.18.2"
+gdcdatamodel = { git = "https://git@github.com/NCI-GDC/gdcdatamodel.git", optional = true }
+openpyxl = { version = "^3.0.10", optional = true }
 python = ">=3.6.1"
 python-dateutil = "^2.8.2"
-pyyaml = "^6.0"
-six = "^1.16.0"
+python-novaclient = { version = ">=17.0,<18.0", optional = true }
+pyyaml = ">=5.1.2"
+requests = { version = ">=2.7,<3.0", optional = true }
+six = ">=1.15"
 urllib3 = "^1.26.13"
-python-novaclient = {version = ">=17.0,<18.0", optional = true}
-openpyxl = {version = "^3.0.10", optional = true}
-requests = {version = ">=2.7,<3.0", optional = true}
-xmltodict = {version = ">=0.9,<1.0", optional = true}
+xmltodict = { version = ">=0.9,<1.0", optional = true }
 
 [tool.poetry.group.test.dependencies]
 coverage = [
@@ -33,7 +34,7 @@ pytest = ">=7.0,<8.0"
 pre-commit = ">=2.0,<3.0"
 
 [tool.poetry.extras]
-dbgap = ["requests", "xmltodict"]
+dbgap = ["gdcdatamodel", "requests", "xmltodict"]
 excel = ["openpyxl"]
 nova = ["python-novaclient"]
 
