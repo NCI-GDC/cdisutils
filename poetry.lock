@@ -828,7 +828,7 @@ nova = ["python-novaclient"]
 [metadata]
 lock-version = "1.1"
 python-versions = ">=3.6.1"
-content-hash = "bca211225bdfd43322b2d1402bdde6391838d3c37d21c12615b57c319aaf130b"
+content-hash = "c11af832d21f5b372f0e097e355d288677bbc553dd1bab34764f0327462f2c98"
 
 [metadata.files]
 atomicwrites = [

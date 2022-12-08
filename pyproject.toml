@@ -14,8 +14,8 @@ openpyxl = { version = "^3.0.10", optional = true }
 python = ">=3.6.1"
 python-dateutil = "^2.8.2"
 python-novaclient = { version = ">=17.0,<18.0", optional = true }
-pyyaml = ">=5.1.2"
-six = ">=1.15"
+pyyaml = "^6.0"
+six = "^1.16.0"
 urllib3 = "^1.26.13"
 
 [tool.poetry.group.test.dependencies]
