@@ -36,7 +36,7 @@ nova = ["python-novaclient"]
 
 [[tool.poetry.source]]
 name = "gitlab"
-url = "https://gitlab.datacommons.io/api/v4/groups/10/-/packages/pypi"
+url = ""
 default = false
 secondary = false
 
