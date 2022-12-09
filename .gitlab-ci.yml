@@ -60,7 +60,7 @@ deploy:3.9:
   image: python:3.9-bullseye
   before_script:
     - apt-get update && apt-get install -y python3-pip python3-venv
-    - /usr/bin/python3.9 -m pip install poetry poetry-dynamic-versioning tox
+    - /usr/bin/python3.9 -m pip install poetry==1.2.2 poetry-dynamic-versioning tox
     - poetry config http-basic.gitlab 'gitlab-ci-token' "$CI_JOB_TOKEN"
   script: 
     - poetry publish -r gitlab
