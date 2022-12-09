@@ -15,10 +15,6 @@
   script:
     - tox -e $PY_VERSION
 
-  artifacts:
-    reports:
-      cobertura: coverage.xml
-
 test:3.7:
   extends:
     - .test
