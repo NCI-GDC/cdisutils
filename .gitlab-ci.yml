@@ -13,6 +13,17 @@
   script:
     - tox -e $PY_VERSION
 
+test:3.6:
+  extends:
+    - .test
+  variables:
+    PY_VERSION: py36
+    DOCKER_IMAGE: python:3.7
+  before_script:
+    - add-apt-repository -y ppa:deadsnakes/ppa
+    - apt-get update && apt-get install -y python3-pip python3-venv python3.6-full
+    - /usr/bin/python3.9 -m pip install poetry poetry-dynamic-versioning tox
+
 test:3.7:
   extends:
     - .test
