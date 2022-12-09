@@ -41,12 +41,6 @@ test:3.9:
     PY_VERSION: py39
     DOCKER_IMAGE: python:3.9
 
-deploy:3.10:
-  before_script:
-    - poetry config http-basic.gitlab 'gitlab-ci-token' "$CI_JOB_TOKEN"
-  script: 
-    - poetry publish -r gitlab
-
 test:3.10:
   extends:
     - .test
@@ -60,3 +54,13 @@ test:3.11:
   variables:
     PY_VERSION: py311
     DOCKER_IMAGE: python:3.11
+
+deploy:3.9:
+  stage: deploy
+  image: python:3.9-bullseye
+  before_script:
+    - apt-get update && apt-get install -y python3-pip python3-venv
+    - /usr/bin/python3.9 -m pip install poetry poetry-dynamic-versioning tox
+    - poetry config http-basic.gitlab 'gitlab-ci-token' "$CI_JOB_TOKEN"
+  script: 
+    - poetry publish -r gitlab
