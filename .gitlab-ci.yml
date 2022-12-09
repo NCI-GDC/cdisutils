@@ -41,6 +41,12 @@ test:3.9:
     PY_VERSION: py39
     DOCKER_IMAGE: python:3.9
 
+deploy:3.10:
+  before_script:
+    - poetry config http-basic.gitlab 'gitlab-ci-token' "$CI_JOB_TOKEN"
+  script: 
+    - poetry publish -r gitlab
+
 test:3.10:
   extends:
     - .test
