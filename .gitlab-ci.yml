@@ -20,6 +20,7 @@ test:3.6:
     PY_VERSION: py36
     DOCKER_IMAGE: python:3.7
   before_script:
+    - apt-get update && apt-get install -y software-properties-common
     - add-apt-repository -y ppa:deadsnakes/ppa
     - apt-get update && apt-get install -y python3-pip python3-venv python3.6-full
     - /usr/bin/python3.9 -m pip install poetry poetry-dynamic-versioning tox
