@@ -13,7 +13,6 @@
       description: "The py version with which to run tox e.g. py36"
     DOCKER_IMAGE:
       description: "The image to install for tests"
-
   image: $DOCKER_IMAGE-bullseye
   script:
     - pipx install tox
@@ -70,6 +69,7 @@ deploy:3.9:
       - tags
   image: python:3.9-bullseye
   script:
+    - git reset --hard $CI_COMMIT_TAG
     - poetry config repositories.gitlab https://gitlab.datacommons.io/api/v4/projects/$CI_PROJECT_ID/packages/pypi
     - poetry config -- http-basic.gitlab gitlab-ci-token "$CI_JOB_TOKEN"
     - poetry run python -V
