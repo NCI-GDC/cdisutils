@@ -1,4 +1,13 @@
+.setup:
+  before_script:
+    - apt-get update && apt-get install -y python3-pip python3-venv
+    - /usr/bin/python3.9 -m pip install pipx && pipx ensurepath && . ~/.bashrc
+    - pipx install poetry
+    - pipx inject poetry 'poetry-dynamic-versioning[poetry]' lockfile
+
 .test:
+  extends: 
+    - .setup
   variables:
     PY_VERSION:
       description: "The py version with which to run tox e.g. py36"
@@ -6,14 +15,8 @@
       description: "The image to install for tests"
 
   image: $DOCKER_IMAGE-bullseye
-
-  before_script:
-    - apt-get update && apt-get install -y python3-pip python3-venv
-    - /usr/bin/python3.9 -m pip install pipx && pipx ensurepath && . ~/.bashrc
-    - pipx install poetry
-    - pipx inject poetry poetry-dynamic-versioning lockfile
-    - pipx install tox
   script:
+    - pipx install tox
     - tox -e $PY_VERSION
 
 test:3.6:
@@ -60,18 +63,13 @@ test:3.11:
 
 deploy:3.9:
   stage: deploy
+  only:
+    refs:
+      - tags
   image: python:3.9-bullseye
-  before_script:
-    - apt-get update && apt-get install -y python3-pip python3-venv
-    - /usr/bin/python3.9 -m pip install pipx && pipx ensurepath && . ~/.bashrc
-    - pipx install poetry
-    - pipx inject poetry 'poetry-dynamic-versioning[poetry]' lockfile
+  script:
     - poetry config repositories.gitlab https://gitlab.datacommons.io/api/v4/projects/$CI_PROJECT_ID/packages/pypi
     - poetry config -- http-basic.gitlab gitlab-ci-token "$CI_JOB_TOKEN"
     - poetry run python -V
-  script:
-    - git checkout 1.9.0
-    - git checkout origin/$CI_COMMIT_REF_NAME -- pyproject.toml
-    - poetry version
     - poetry build -f wheel
-    # - poetry publish -r gitlab
+    - poetry publish -r gitlab
