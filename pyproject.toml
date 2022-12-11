@@ -35,16 +35,17 @@ excel = ["openpyxl"]
 nova = ["python-novaclient"]
 
 [[tool.poetry.source]]
-name = "gitlab"
-url = "https://gitlab.datacommons.io/api/v4/groups/10/-/packages/pypi"
 default = false
+name = "gitlab"
 secondary = false
+url = "https://gitlab.datacommons.io/api/v4/groups/10/-/packages/pypi"
 
 [tool.poetry-dynamic-versioning]
 dirty = true
 enable = true
 metadata = true
 pattern = "default-unprefixed"
+vcs = "git"
 
 [build-system]
 build-backend = "poetry.core.masonry.api"
