@@ -63,6 +63,8 @@ test:3.11:
 
 deploy:3.9:
   stage: deploy
+  extends:
+    - .setup
   only:
     refs:
       - tags
