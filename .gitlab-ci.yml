@@ -66,11 +66,11 @@ deploy:3.9:
     - /usr/bin/python3.9 -m pip install pipx && pipx ensurepath && . ~/.bashrc
     - pipx install poetry
     - pipx inject poetry lockfile
-    - pipx install tox
     - poetry config repositories.gitlab https://gitlab.datacommons.io/api/v4/projects/$CI_PROJECT_ID/packages/pypi
     - poetry config -- http-basic.gitlab gitlab-ci-token "$CI_JOB_TOKEN"
     - poetry self add 'poetry-dynamic-versioning[poetry]'
     - poetry run python -V
   script:
+    - poetry version
     - poetry build -f wheel
-    - poetry publish -r gitlab
+    # - poetry publish -r gitlab
