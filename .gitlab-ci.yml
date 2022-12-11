@@ -71,6 +71,8 @@ deploy:3.9:
     - poetry run python -V
   script:
     - git checkout $CI_COMMIT_BRANCH
+    - git rev-parse --abbrev-ref HEAD
+    - git describe --tags --abbrev=0
     - poetry version
     - poetry build -f wheel
     # - poetry publish -r gitlab
