@@ -69,8 +69,7 @@ deploy:3.9:
     - pipx install tox
     - poetry config repositories.gitlab https://gitlab.datacommons.io/api/v4/projects/$CI_PROJECT_ID/packages/pypi
     - poetry config -- http-basic.gitlab gitlab-ci-token "$CI_JOB_TOKEN"
-    - poetry config virtualenvs.in-project true
   script:
-    - poetry shell
+    - poetry run python -V
     - poetry build -f wheel
     - poetry publish -r gitlab
