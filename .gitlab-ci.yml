@@ -70,5 +70,6 @@ deploy:3.9:
     - poetry config repositories.gitlab https://gitlab.datacommons.io/api/v4/projects/$CI_PROJECT_ID/packages/pypi
     - poetry config -- http-basic.gitlab gitlab-ci-token "$CI_JOB_TOKEN"
   script:
+    - poetry shell
     - poetry build -f wheel
     - poetry publish -r gitlab
