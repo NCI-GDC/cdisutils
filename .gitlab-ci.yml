@@ -72,6 +72,7 @@ deploy:3.9:
   script:
     - git fetch --all --tags
     - git checkout $CI_COMMIT_BRANCH
+    - git pull
     - git rev-parse --abbrev-ref HEAD
     - git describe --tags --abbrev=0
     - poetry version
