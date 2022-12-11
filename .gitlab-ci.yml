@@ -70,6 +70,7 @@ deploy:3.9:
     - poetry config -- http-basic.gitlab gitlab-ci-token "$CI_JOB_TOKEN"
     - poetry run python -V
   script:
+    - git fetch --all --tags
     - git checkout $CI_COMMIT_BRANCH
     - git rev-parse --abbrev-ref HEAD
     - git describe --tags --abbrev=0
