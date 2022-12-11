@@ -71,6 +71,7 @@ deploy:3.9:
     - poetry self add 'poetry-dynamic-versioning[poetry]'
     - poetry run python -V
   script:
+    - git describe --tags --abbrev=0
     - poetry version
     - poetry build -f wheel
     # - poetry publish -r gitlab
