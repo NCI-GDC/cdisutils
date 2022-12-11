@@ -71,6 +71,7 @@ deploy:3.9:
     - poetry run python -V
   script:
     - git reset --hard
+    - git rev-parse --abbrev-ref HEAD
     - poetry version
     - poetry build -f wheel
     # - poetry publish -r gitlab
