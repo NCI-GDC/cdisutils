@@ -34,7 +34,7 @@ setup(
         "python-dateutil~=2.4",
         "PyYAML>=3.11,<6.0",
         "six~=1.11",
-        "urllib3~=1.0",
+        "urllib3>=1.0,<1.26",           # for moto and boto2
     ],
     # Some lesser-used parts of cdisutils require extra dependencies.
     extras_require={

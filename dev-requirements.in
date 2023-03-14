@@ -1,3 +1,4 @@
+-c requirements.txt
 # Test requirements.
 
 # TODO: Switch to unittest.mock after we drop support for Python 2.
