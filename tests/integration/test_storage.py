@@ -1,12 +1,11 @@
 from unittest import TestCase
-from cdisutils.net import BotoManager, cancel_stale_multiparts, md5sum_with_size
-from cdisutils.net import url_for_boto_key
+from cdisutils.storage import cancel_stale_multiparts, md5sum_with_size, url_for_boto_key
 
 
 from boto.s3.connection import S3Connection
 import boto
 from moto import mock_s3
-from unittest.mock import patch, MagicMock, call
+from unittest.mock import MagicMock
 
 
 def connect_s3_mock(*args, **kwargs):
@@ -32,7 +31,6 @@ class BotoUtilsTest(TestCase):
             # moto hard coded multipart initiate date to 2010-11-10T20:48:33.000Z,
             # so newly created uploads actually are created > 7 days.
             assert len(bucket.get_all_multipart_uploads()) == 0
-
 
     def test_cancel_stale_multiparts_does_not_cancel_active_uploads(self):
         with mock_s3():
