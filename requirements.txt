@@ -4,7 +4,6 @@
 #
 #    pip-compile
 #
---index-url https://nexus.osdc.io/repository/pypi-all/simple
 
 boto3==1.16.63
     # via cdisutils (setup.py)
