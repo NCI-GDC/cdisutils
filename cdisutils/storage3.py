@@ -18,7 +18,6 @@ import boto3
 import urllib3
 import six
 from botocore.exceptions import ClientError
-from mypy_boto3_s3.client import S3Client
 
 from .log import get_logger
 

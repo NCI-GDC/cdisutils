@@ -1,13 +1,6 @@
-import pytest
-
-import cdisutils.net as net
-import cdisutils.storage as storage
-
 import os
-import json
-import tempfile
-from contextlib import contextmanager
-from shutil import rmtree
+
+from cdisutils import net
 
 
 def test_no_proxy_cm():
