@@ -30,7 +30,6 @@ setup(
     install_requires=[
         "boto~=2.36",
         "boto3~=1.9",
-        "future>=0.16,<1.0",
         "python-dateutil~=2.4",
         "PyYAML>=3.11,<6.0",
         "six~=1.11",
