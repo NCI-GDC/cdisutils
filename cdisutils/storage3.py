@@ -221,11 +221,11 @@ class Boto3Manager(object):
         self.mp_chunk_size = DEFAULT_MP_CHUNK_SIZE
         self.chunk_size = DEFAULT_DOWNLOAD_CHUNK_SIZE
 
-    def __getitem__(self, host: str) -> S3Client:
+    def __getitem__(self, host: str):
         """ Internal call for getting a connection """
         return self.get_connection(host)
 
-    def harmonize_host(self, host: str) -> str:
+    def harmonize_host(self, host: str):
         """ Harmonize a host name to get one in the list of hosts """
         matches = {
             alias: aliased_host
@@ -242,7 +242,7 @@ class Boto3Manager(object):
         else:
             return host
 
-    def get_connection(self, host: str) -> S3Client:
+    def get_connection(self, host: str):
         """ Get an s3 connection handle """
         return self.conns[self.harmonize_host(host)]
 
