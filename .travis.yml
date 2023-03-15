@@ -1,7 +1,6 @@
 language: python
-dist: xenial
+dist: focal
 python:
-  - "2.7"
   - "3.5"
 before_install:
    sudo rm -f /etc/boto.cfg
