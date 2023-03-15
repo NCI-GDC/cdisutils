@@ -1,10 +1,6 @@
-import sys
 import openpyxl
 from io import BytesIO
 from cdisutils.log import get_logger
-from cdisutils.storage import BotoManager
-from future.standard_library import install_aliases
-install_aliases()
 from urllib.parse import urlparse
 
 log = get_logger(

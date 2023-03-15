@@ -19,12 +19,9 @@ from boto.s3 import connection as boto_connection
 from dateutil import parser
 from datetime import timedelta, datetime
 from future.utils import iteritems
-from future.standard_library import install_aliases
 
 import cdisutils.log
 import cdisutils.parsers
-
-install_aliases()
 
 
 class S3ConnectionProxyFix(boto_connection.S3Connection):

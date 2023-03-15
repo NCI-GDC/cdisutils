@@ -6,18 +6,12 @@ cdisutils.storage3
 Utilities for working with object stores using boto3
 
 """
-from __future__ import print_function
-
-from future import standard_library
-
-standard_library.install_aliases()
 import hashlib
 import json
 import os
 import re
 import sys
 import time
-from builtins import next, object, str, zip
 from urllib.parse import urlparse
 
 import boto3
