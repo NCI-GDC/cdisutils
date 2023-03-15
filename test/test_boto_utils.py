@@ -6,7 +6,7 @@ from cdisutils.net import url_for_boto_key
 from boto.s3.connection import S3Connection
 import boto
 from moto import mock_s3
-from mock import patch, MagicMock, call
+from unittest.mock import patch, MagicMock, call
 
 
 def connect_s3_mock(*args, **kwargs):
