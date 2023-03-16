@@ -7,6 +7,7 @@ Utilities for working with object stores using boto3
 
 """
 import hashlib
+import io
 import json
 import os
 import re
@@ -16,7 +17,6 @@ from urllib.parse import urlparse
 
 import boto3
 import urllib3
-import six
 from botocore.exceptions import ClientError
 
 from .log import get_logger
@@ -340,7 +340,7 @@ class Boto3Manager(object):
 
         multipart_info["dst_info"] = self.parse_url(url=dst_url)
         multipart_info["src_info"] = self.parse_url(url=src_url)
-        multipart_info["stream_buffer"] = six.BytesIO()
+        multipart_info["stream_buffer"] = io.BytesIO()
         multipart_info["mp_chunk_size"] = self.mp_chunk_size
         multipart_info["download_chunk_size"] = self.chunk_size
         multipart_info["cur_size"] = 0
@@ -399,7 +399,7 @@ class Boto3Manager(object):
         else:
             mp_info["cur_size"] = 0
             mp_info["stream_buffer"].close()
-            mp_info["stream_buffer"] = six.BytesIO()
+            mp_info["stream_buffer"] = io.BytesIO()
             mp_info_part = {
                 "ETag": result["ETag"],
                 "PartNumber": mp_info["chunk_index"],
@@ -419,10 +419,10 @@ class Boto3Manager(object):
         multipart between object stores
         """
 
-        if isinstance(src_info, six.string_types):
+        if isinstance(src_info, str):
             src_url = src_info
             src_info = self.parse_url(url=src_url)
-        if isinstance(dst_info, six.string_types):
+        if isinstance(dst_info, str):
             dst_url = dst_info
             dst_info = self.parse_url(url=dst_url)
 
