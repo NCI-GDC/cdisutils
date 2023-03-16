@@ -35,12 +35,9 @@ def create_large_file(tmp_path_factory):
 
 @pytest.fixture
 def create_large_object(create_large_file, moto_server):
-    # s3_client = make_s3_client()
-    # s3_client.upload_file(str(create_large_file), TEST_BUCKET, ORIGINAL_FILE_NAME)
-    s3 = boto3.client("s3", endpoint_url='https://localhost:7000', verify=False)
+    s3 = boto3.client("s3", endpoint_url='https://localhost:7000', verify=False, aws_access_key_id='testing', aws_secret_access_key='testing')
     s3.create_bucket(Bucket=TEST_BUCKET)
     s3.put_object(Body=open(str(create_large_file), 'rb'), Bucket=TEST_BUCKET, Key=ORIGINAL_FILE_NAME)
-    # s3.upload_fileobj(TEST_BUCKET, ORIGINAL_FILE_NAME).put(Body=open(str(create_large_file), 'rb'))
     original_object = s3.head_object(Bucket=TEST_BUCKET, Key=ORIGINAL_FILE_NAME)
     assert original_object["ContentLength"] == create_large_file.stat().st_size
 
