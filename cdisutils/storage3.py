@@ -525,7 +525,7 @@ class Boto3Manager(object):
             if file_key:
                 while downloading:
                     try:
-                        chunk = self.download_object_part(key=file_key)
+                        chunk = self.download_object_part(key=file_key['Body'])
                     except ClientError as exception:
                         downloading = False
                         self.log.error(
@@ -549,7 +549,7 @@ class Boto3Manager(object):
                 self.log.warn("Unable to find %s", url)
 
         self.log.info("%d lines received", len(str(file_data)))
-        return str(file_data)
+        return file_data.decode()
 
     def parse_data_file(self, uri=None, data_type="tsv", custom_delimiter=None):
         """
