@@ -23,7 +23,6 @@ def get_config():
     }
 
 
-
 @pytest.fixture(scope="module")
 def create_file(tmp_path_factory):
     large_file = tmp_path_factory.mktemp("data") / ORIGINAL_FILE_NAME
@@ -50,7 +49,31 @@ def create_object(create_file, moto_server):
     s3.delete_object(Bucket=TEST_BUCKET, Key=ORIGINAL_FILE_NAME)
 
 
-def test_get_url(create_object, moto_server):
+def test_get_connection(create_object):
+    config = get_config()
+    manager = Boto3Manager(config)
+    conn = manager.get_connection('localhost:7000')
+    head = conn.head_object(Bucket=TEST_BUCKET, Key=ORIGINAL_FILE_NAME)
+    assert head['ResponseMetadata']['HTTPStatusCode'] == 200
+
+
+def test_parse_url(create_object):
+    config = get_config()
+    manager = Boto3Manager(config)
+    s3_info = manager.parse_url("s3://localhost:7000/{}/{}".format(TEST_BUCKET, ORIGINAL_FILE_NAME))
+    assert s3_info == {'url': 's3://localhost:7000/test_bucket/original_file', 's3_loc': 'localhost:7000', 'bucket_name': 'test_bucket', 'key_name': 'original_file'}
+
+
+def test_get_url(create_object):
     config = get_config()
     manager = Boto3Manager(config)
     key = manager.get_url("s3://localhost:7000/{}/{}".format(TEST_BUCKET, ORIGINAL_FILE_NAME))
+    assert key['ResponseMetadata']['HTTPStatusCode'] == 200
+
+
+def test_list_buckets(create_object):
+    config = get_config()
+    manager = Boto3Manager(config)
+    bucket_list = manager.list_buckets('localhost:7000')
+    assert len(bucket_list) == 1
+    assert bucket_list[0]['Name'] == TEST_BUCKET
