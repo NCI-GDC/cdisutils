@@ -11,6 +11,5 @@ def get_config():
         "localhost:7000": {
             "aws_secret_access_key": "testing",
             "aws_access_key_id": "testing",
-            "verify": False,
         },
     }
