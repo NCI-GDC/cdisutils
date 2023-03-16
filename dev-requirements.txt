@@ -34,6 +34,8 @@ cffi==1.15.1
     # via cryptography
 chardet==3.0.4
     # via requests
+click==7.1.2
+    # via flask
 cookies==2.2.1
     # via moto
 coverage==5.2.1
@@ -48,6 +50,8 @@ filelock==3.0.12
     # via
     #   tox
     #   virtualenv
+flask==1.1.4
+    # via -r dev-requirements.in
 idna==2.10
     # via requests
 importlib-metadata==0.23
@@ -58,8 +62,12 @@ importlib-metadata==0.23
     #   virtualenv
 importlib-resources==3.0.0
     # via virtualenv
+itsdangerous==1.1.0
+    # via flask
 jinja2==2.11.2
-    # via moto
+    # via
+    #   flask
+    #   moto
 jmespath==0.10.0
     # via
     #   -c requirements.txt
@@ -151,7 +159,9 @@ wcwidth==0.2.5
 websocket-client==0.59.0
     # via docker
 werkzeug==1.0.1
-    # via moto
+    # via
+    #   flask
+    #   moto
 wrapt==1.15.0
     # via aws-xray-sdk
 xmltodict==0.12.0
