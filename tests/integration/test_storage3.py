@@ -24,7 +24,7 @@ def get_config():
 
 
 @pytest.fixture(scope="module")
-def create_file(tmp_path_factory):
+def create_large_file(tmp_path_factory):
     large_file = tmp_path_factory.mktemp("data") / ORIGINAL_FILE_NAME
     with open(str(large_file), "w") as fp:
         for _ in range(LARGE_NUMBER_TO_WRITE):
@@ -34,22 +34,23 @@ def create_file(tmp_path_factory):
 
 
 @pytest.fixture
-def create_object(create_file, moto_server):
+def create_large_object(create_large_file, moto_server):
     # s3_client = make_s3_client()
     # s3_client.upload_file(str(create_large_file), TEST_BUCKET, ORIGINAL_FILE_NAME)
     s3 = boto3.client("s3", endpoint_url='https://localhost:7000', verify=False)
     s3.create_bucket(Bucket=TEST_BUCKET)
-    s3.put_object(Body=open(str(create_file), 'rb'), Bucket=TEST_BUCKET, Key=ORIGINAL_FILE_NAME)
+    s3.put_object(Body=open(str(create_large_file), 'rb'), Bucket=TEST_BUCKET, Key=ORIGINAL_FILE_NAME)
     # s3.upload_fileobj(TEST_BUCKET, ORIGINAL_FILE_NAME).put(Body=open(str(create_large_file), 'rb'))
     original_object = s3.head_object(Bucket=TEST_BUCKET, Key=ORIGINAL_FILE_NAME)
-    assert original_object["ContentLength"] == create_file.stat().st_size
+    assert original_object["ContentLength"] == create_large_file.stat().st_size
 
     yield original_object
 
     s3.delete_object(Bucket=TEST_BUCKET, Key=ORIGINAL_FILE_NAME)
 
 
-def test_get_connection(create_object):
+@pytest.mark.usefixtures('create_large_object')
+def test_get_connection():
     config = get_config()
     manager = Boto3Manager(config)
     conn = manager.get_connection('localhost:7000')
@@ -57,23 +58,27 @@ def test_get_connection(create_object):
     assert head['ResponseMetadata']['HTTPStatusCode'] == 200
 
 
-def test_parse_url(create_object):
+@pytest.mark.usefixtures('create_large_object')
+def test_parse_url():
     config = get_config()
     manager = Boto3Manager(config)
     s3_info = manager.parse_url("s3://localhost:7000/{}/{}".format(TEST_BUCKET, ORIGINAL_FILE_NAME))
     assert s3_info == {'url': 's3://localhost:7000/test_bucket/original_file', 's3_loc': 'localhost:7000', 'bucket_name': 'test_bucket', 'key_name': 'original_file'}
 
 
-def test_get_url(create_object):
+@pytest.mark.usefixtures('create_large_object')
+def test_get_url():
     config = get_config()
     manager = Boto3Manager(config)
     key = manager.get_url("s3://localhost:7000/{}/{}".format(TEST_BUCKET, ORIGINAL_FILE_NAME))
     assert key['ResponseMetadata']['HTTPStatusCode'] == 200
 
 
-def test_list_buckets(create_object):
+@pytest.mark.usefixtures('create_large_object')
+def test_list_buckets():
     config = get_config()
     manager = Boto3Manager(config)
     bucket_list = manager.list_buckets('localhost:7000')
     assert len(bucket_list) == 1
     assert bucket_list[0]['Name'] == TEST_BUCKET
+
