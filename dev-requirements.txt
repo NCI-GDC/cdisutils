@@ -11,24 +11,43 @@ atomicwrites==1.4.0
     # via pytest
 attrs==19.3.0
     # via pytest
+aws-xray-sdk==2.11.0
+    # via moto
+boto3==1.16.63
+    # via
+    #   -c requirements.txt
+    #   moto
 boto==2.49.0
     # via
     #   -c requirements.txt
     #   moto
+botocore==1.19.63
+    # via
+    #   -c requirements.txt
+    #   aws-xray-sdk
+    #   boto3
+    #   moto
+    #   s3transfer
 certifi==2020.6.20
     # via requests
+cffi==1.15.1
+    # via cryptography
 chardet==3.0.4
     # via requests
+cookies==2.2.1
+    # via moto
 coverage==5.2.1
     # via pytest-cov
+cryptography==3.2.1
+    # via moto
 distlib==0.3.1
     # via virtualenv
+docker==4.4.4
+    # via moto
 filelock==3.0.12
     # via
     #   tox
     #   virtualenv
-httpretty==0.8.10
-    # via moto
 idna==2.10
     # via requests
 importlib-metadata==0.23
@@ -41,11 +60,20 @@ importlib-resources==3.0.0
     # via virtualenv
 jinja2==2.11.2
     # via moto
+jmespath==0.10.0
+    # via
+    #   -c requirements.txt
+    #   boto3
+    #   botocore
+jsondiff==1.1.1
+    # via moto
 markupsafe==1.1.1
     # via jinja2
+mock==3.0.5
+    # via moto
 more-itertools==5.0.0
     # via pytest
-moto==0.4.31
+moto==1.2.0
     # via -r dev-requirements.in
 packaging==20.4
     # via
@@ -61,6 +89,10 @@ py==1.9.0
     # via
     #   pytest
     #   tox
+pyaml==21.10.1
+    # via moto
+pycparser==2.21
+    # via cffi
 pyparsing==2.4.7
     # via packaging
 pytest-cov==2.10.0
@@ -72,14 +104,28 @@ pytest==4.6.11
 python-dateutil==2.8.2
     # via
     #   -c requirements.txt
+    #   botocore
     #   moto
 pytz==2020.1
     # via moto
+pyyaml==5.3.1
+    # via
+    #   -c requirements.txt
+    #   pyaml
 requests==2.24.0
-    # via moto
+    # via
+    #   docker
+    #   moto
+s3transfer==0.3.7
+    # via
+    #   -c requirements.txt
+    #   boto3
 six==1.16.0
     # via
     #   -c requirements.txt
+    #   cryptography
+    #   docker
+    #   mock
     #   more-itertools
     #   moto
     #   packaging
@@ -88,6 +134,7 @@ six==1.16.0
     #   python-dateutil
     #   tox
     #   virtualenv
+    #   websocket-client
 toml==0.10.1
     # via tox
 tox==3.13.1
@@ -95,13 +142,18 @@ tox==3.13.1
 urllib3==1.25.11
     # via
     #   -c requirements.txt
+    #   botocore
     #   requests
 virtualenv==20.0.30
     # via tox
 wcwidth==0.2.5
     # via pytest
+websocket-client==0.59.0
+    # via docker
 werkzeug==1.0.1
     # via moto
+wrapt==1.15.0
+    # via aws-xray-sdk
 xmltodict==0.12.0
     # via moto
 zipp==1.2.0
