@@ -5,7 +5,7 @@ from boto.s3.connection import S3Connection
 
 import cdisutils
 from cdisutils.storage import BotoManager
-from tests.utils import get_config
+from tests.unit.utils import get_config
 
 
 def test_basic_connect():
