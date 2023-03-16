@@ -28,15 +28,15 @@ class MotoServer(Thread):
 
     @property
     def url(self) -> str:
-        return f"{self.hostname}:{self.port}"
+        return "{}:{}".format(self.hostname, self.port)
 
     @property
     def https_url(self) -> str:
-        return f"https://{self.url}"
+        return "https://{}".format(self.url)
 
     @property
     def s3_url(self) -> str:
-        return f"s3://{self.url}"
+        return "s3://{}".format(self.url)
 
     @property
     def client_config(self):
@@ -72,13 +72,13 @@ class MotoServer(Thread):
         try:
             sig = signal.SIGKILL
         except Exception as e:
-            logger.error(msg=f"Error: {e}", exc_info=True)
+            logger.error(msg="Error: {}".format(e), exc_info=True)
             sig = signal.SIGTERM
 
         try:
             self._proc.send_signal(sig)
         except Exception as e:
-            logger.error(f"Error: {e}", exc_info=True)
+            logger.error("Error: {}".format(e), exc_info=True)
             self._proc.terminate()
         logger.info("Shutdown successful for mock Boto Service id: " + self.server_id)
 
