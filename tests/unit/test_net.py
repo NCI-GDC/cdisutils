@@ -20,4 +20,3 @@ def test_no_proxy_dec():
     inner()
     assert os.environ["http_proxy"] == "http://foobar:1234"
     del os.environ["http_proxy"]
-

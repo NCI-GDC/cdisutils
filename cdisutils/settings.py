@@ -14,7 +14,7 @@ class Settings:
     default_path = "settings.yaml"
 
     def lookup(self, key):
-        """ 
+        """
         Insert any indirect lookups in this function
         """
 
@@ -27,7 +27,7 @@ class Settings:
     def __init__(self, path = None):
         self.path = self.default_path
         self.load(path)
-        
+
     def __call__(self, key):
         return self.lookup(key)
 
@@ -46,8 +46,8 @@ class Settings:
         if path is None and self.path is None:
             logging.error("Unable to load settings, no path specified.")
             return self
-        
-        if path is not None: 
+
+        if path is not None:
             logging.debug("Updating settings file path {path}".format(path = path))
             self.path = path
 
