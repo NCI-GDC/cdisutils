@@ -6,23 +6,17 @@ cdisutils.storage3
 Utilities for working with object stores using boto3
 
 """
-from __future__ import print_function
-
-from future import standard_library
-
-standard_library.install_aliases()
 import hashlib
+import io
 import json
 import os
 import re
 import sys
 import time
-from builtins import next, object, str, zip
 from urllib.parse import urlparse
 
 import boto3
 import urllib3
-import six
 from botocore.exceptions import ClientError
 
 from .log import get_logger
@@ -346,7 +340,7 @@ class Boto3Manager(object):
 
         multipart_info["dst_info"] = self.parse_url(url=dst_url)
         multipart_info["src_info"] = self.parse_url(url=src_url)
-        multipart_info["stream_buffer"] = six.BytesIO()
+        multipart_info["stream_buffer"] = io.BytesIO()
         multipart_info["mp_chunk_size"] = self.mp_chunk_size
         multipart_info["download_chunk_size"] = self.chunk_size
         multipart_info["cur_size"] = 0
@@ -405,7 +399,7 @@ class Boto3Manager(object):
         else:
             mp_info["cur_size"] = 0
             mp_info["stream_buffer"].close()
-            mp_info["stream_buffer"] = six.BytesIO()
+            mp_info["stream_buffer"] = io.BytesIO()
             mp_info_part = {
                 "ETag": result["ETag"],
                 "PartNumber": mp_info["chunk_index"],
@@ -425,10 +419,10 @@ class Boto3Manager(object):
         multipart between object stores
         """
 
-        if isinstance(src_info, six.string_types):
+        if isinstance(src_info, str):
             src_url = src_info
             src_info = self.parse_url(url=src_url)
-        if isinstance(dst_info, six.string_types):
+        if isinstance(dst_info, str):
             dst_url = dst_info
             dst_info = self.parse_url(url=dst_url)
 
@@ -531,7 +525,7 @@ class Boto3Manager(object):
             if file_key:
                 while downloading:
                     try:
-                        chunk = self.download_object_part(key=file_key)
+                        chunk = self.download_object_part(key=file_key['Body'])
                     except ClientError as exception:
                         downloading = False
                         self.log.error(
@@ -555,7 +549,7 @@ class Boto3Manager(object):
                 self.log.warn("Unable to find %s", url)
 
         self.log.info("%d lines received", len(str(file_data)))
-        return str(file_data)
+        return file_data.decode()
 
     def parse_data_file(self, uri=None, data_type="tsv", custom_delimiter=None):
         """

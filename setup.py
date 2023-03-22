@@ -17,8 +17,6 @@ setup(
     long_description=long_description,
     long_description_content_type="text/markdown",
     classifiers=[
-        "Programming Language :: Python :: 2",
-        "Programming Language :: Python :: 2.7",
         "Programming Language :: Python :: 3",
         "Programming Language :: Python :: 3.5",
         "License :: OSI Approved :: Apache Software License",
@@ -30,11 +28,9 @@ setup(
     install_requires=[
         "boto~=2.36",
         "boto3~=1.9",
-        "future>=0.16,<1.0",
         "python-dateutil~=2.4",
         "PyYAML>=3.11,<6.0",
-        "six~=1.11",
-        "urllib3~=1.0",
+        "urllib3>=1.0,<1.26",           # for moto and boto2
     ],
     # Some lesser-used parts of cdisutils require extra dependencies.
     extras_require={

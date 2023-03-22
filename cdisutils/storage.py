@@ -18,13 +18,9 @@ import boto
 from boto.s3 import connection as boto_connection
 from dateutil import parser
 from datetime import timedelta, datetime
-from future.utils import iteritems
-from future.standard_library import install_aliases
 
 import cdisutils.log
 import cdisutils.parsers
-
-install_aliases()
 
 
 class S3ConnectionProxyFix(boto_connection.S3Connection):
@@ -63,7 +59,7 @@ class S3ConnectionProxyFix(boto_connection.S3Connection):
         sock.sendall(("CONNECT %s HTTP/1.0\r\n" % host).encode())
         sock.sendall(("User-Agent: %s\r\n" % boto.UserAgent).encode())
         if self.proxy_user and self.proxy_pass:
-            for k, v in iteritems(self.get_proxy_auth_header()):
+            for k, v in self.get_proxy_auth_header().items():
                 sock.sendall(("%s: %s\r\n" % (k, v)).encode())
             # See discussion about this config option at
             # https://groups.google.com/forum/?fromgroups#!topic/boto-dev/teenFvOq2Cc
@@ -258,7 +254,7 @@ class BotoManager(object):
         """
 
         self.config = config
-        for host, kwargs in iteritems(self.config):
+        for host, kwargs in self.config.items():
             # we need to pass the host argument in when we connect, so
             # set it here
             kwargs["host"] = host
@@ -304,7 +300,7 @@ class BotoManager(object):
         return self.conns.keys()
 
     def connect(self):
-        for host, kwargs in iteritems(self.config):
+        for host, kwargs in self.config.items():
             self.conns[host] = S3ConnectionProxyFix(**kwargs)
 
     def new_connection_to(self, host):
@@ -316,7 +312,7 @@ class BotoManager(object):
     def harmonize_host(self, host):
         matches = {
             alias: aliased_host
-            for alias, aliased_host in iteritems(self.host_aliases)
+            for alias, aliased_host in self.host_aliases.items()
             if re.match(alias, host)
         }
 
