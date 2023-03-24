@@ -55,8 +55,8 @@ def test_from_configs(config):
 
 
 @pytest.mark.parametrize('aliases,host,expected', [
-    ({'aws\..*\.com': 'a', 'aws\..*\.org': 'b'}, 'aws.custom.com', 'a'),
-    ({'aws\..*\.com': 'b'}, 'c', 'c'),
+    ({r'aws\..*\.com': 'a', r'aws\..*\.org': 'b'}, 'aws.custom.com', 'a'),
+    ({r'aws\..*\.com': 'b'}, 'c', 'c'),
 ])
 def test_aliased_connections(aliases, host, expected):
     kwargs = {"aws_access_key_id": "", "aws_secret_access_key": ""}

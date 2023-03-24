@@ -16,12 +16,12 @@ from .errors import (
     UserError,
 )
 
-PHSID_REGEX = re.compile('(phs\d+.v)(\d)(.*)')
+PHSID_REGEX = re.compile(r'(phs\d+.v)(\d)(.*)')
 
 COMPLETE_STATE = ['released', 'completed_by_gpa']
 
 
-class dbGaPXReferencer(object):
+class dbGaPXReferencer:
 
     #: The url from which to pull telemetry reports for project with given
     #: accession number (to be formatted in)
@@ -88,7 +88,7 @@ class dbGaPXReferencer(object):
         if phsid not in self._cached_telemetry_xmls:
 
             url = self.DEFAULT_URL.format(phsid=phsid)
-            self.logger.info('Pulling telemetry report from {0}'.format(url))
+            self.logger.info(f'Pulling telemetry report from {url}')
 
             # Request the XML
             r = requests.get(url, proxies=self.proxies)
@@ -122,7 +122,7 @@ class dbGaPXReferencer(object):
 
         """
 
-        self.logger.info('Looking up project {0}-{1}'
+        self.logger.info('Looking up project {}-{}'
                          .format(program_name, project_code))
 
         with self.db.session_scope():
@@ -202,7 +202,7 @@ class dbGaPXReferencer(object):
 
     def assert_project_exists(self, project_code, phsid):
         url = self.DEFAULT_URL.format(phsid=phsid)
-        self.logger.info('Pulling telemetry report from {0}'.format(url))
+        self.logger.info(f'Pulling telemetry report from {url}')
 
         # Request the XML
         r = requests.get(url, proxies=self.proxies)

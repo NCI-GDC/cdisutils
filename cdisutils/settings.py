@@ -19,7 +19,7 @@ class Settings:
         """
 
         if key not in self.settings:
-            logging.error("Key [{key}] was not in settings dictionary".format(key = key))
+            logging.error(f"Key [{key}] was not in settings dictionary")
             return None
 
         return self.settings[attribute]
@@ -48,18 +48,18 @@ class Settings:
             return self
 
         if path is not None:
-            logging.debug("Updating settings file path {path}".format(path = path))
+            logging.debug(f"Updating settings file path {path}")
             self.path = path
 
-        logging.info("Loading settings file {path}".format(path = path))
+        logging.info(f"Loading settings file {path}")
 
         try:
-            with open(self.path, 'r') as yaml_file:
+            with open(self.path) as yaml_file:
                 self.settings = yaml.load(yaml_file)
         except Exception as msg:
-            logging.error("Unable to load settings from {path}: {msg}".format(path = path, msg = str(msg)))
+            logging.error(f"Unable to load settings from {path}: {str(msg)}")
             logging.info("Proceeding with no settings")
         else:
-            logging.debug("Successfully loaded settings from {path}.".format(path = path))
+            logging.debug(f"Successfully loaded settings from {path}.")
 
         return self

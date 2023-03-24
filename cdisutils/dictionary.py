@@ -17,7 +17,7 @@ def sort_dict(tree, remove_keys=None):
         }
     elif isinstance(tree, list):
         return sorted(
-            [sort_dict(element, remove_keys=remove_keys) for element in tree]
+            sort_dict(element, remove_keys=remove_keys) for element in tree
         )
     else:
         return tree

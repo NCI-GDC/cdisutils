@@ -114,7 +114,7 @@ def read_sheet(ws=None, num_headers=1):
             ]
     """
     sheet_data = []
-    log.info("{} rows in sheet".format(ws.max_row))
+    log.info(f"{ws.max_row} rows in sheet")
     # NOTE: Saving the generator object in a variable, because accessing the
     # 'rows' property will always return a fresh generator
     rows = ws.rows
@@ -159,7 +159,7 @@ def load_spreadsheet_from_s3(boto_man=None,
     try:
         wb = openpyxl.load_workbook(filename=BytesIO(file_data))
     except Exception as e:
-        print('Hmm, something wrong: {}'.format(e))
+        print(f'Hmm, something wrong: {e}')
         if key_name.endswith('xls'):
             print('Loading as xlsx')
             wb = openpyxl.load_workbook(filename=BytesIO(file_data),
