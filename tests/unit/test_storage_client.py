@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """
 Test suite for utils that interact with the storage system
 """

@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """
 Defines functionality to check case existence in dbGaP.
 """

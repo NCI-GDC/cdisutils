@@ -181,5 +181,3 @@ def load_spreadsheet_from_s3(boto_man=None,
                                               num_headers=num_headers)
 
     return data
-
-

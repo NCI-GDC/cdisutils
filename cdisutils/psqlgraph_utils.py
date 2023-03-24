@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """
 cdisutils.psqlgraph_utils
 ----------------------------------
