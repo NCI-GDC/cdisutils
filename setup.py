@@ -44,5 +44,11 @@ setup(
         #
         # bin/nova_status.py
         "nova": ["python-novaclient~=3.2"],
+        "dev": [
+            "moto>1",
+            "pytest>4.6",
+            "pytest-cov>2.10",
+            "flask",
+        ],
     },
 )
