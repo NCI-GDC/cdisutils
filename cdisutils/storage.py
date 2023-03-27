@@ -235,7 +235,7 @@ class BotoManager:
                  lazy=False,
                  host_aliases={},
                  stream_status=False):
-        r"""
+        """
         Config map should be a map from hostname to args, e.g.:
         {
             "cleversafe.service.consul: {
