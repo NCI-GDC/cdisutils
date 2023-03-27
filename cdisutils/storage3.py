@@ -65,7 +65,7 @@ def print_running_status(
 ):
     """ Print the status of a transfer, given time and size """
     size_info = get_nearest_file_size(transferred_bytes)
-    cur_time = time.clock()
+    cur_time = time.perf_counter()
     base_transfer_rate = float(transferred_bytes) / float(cur_time - start_time)
     transfer_info = get_nearest_file_size(base_transfer_rate)
     cur_conv_size = float(transferred_bytes) / float(size_info[0])
@@ -141,12 +141,12 @@ def load_creds():
 
     for key, value in s3_creds[s3_key].items():
         if not str(value):
-            print("Incomplete cred data for {}: {}".format(s3_key, key))
+            print(f"Incomplete cred data for {s3_key}: {key}")
 
     return s3_creds
 
 
-class Boto3Manager(object):
+class Boto3Manager:
     """
     A class that abstracts away boto3 calls to multiple underlying
     object stores. Given a map from hostname -> arguments to
@@ -252,7 +252,7 @@ class Boto3Manager(object):
     def new_connection_to(self, host):
         """ Connect to a given host """
         if "https" not in host:
-            s3_url = "https://{}".format(host)
+            s3_url = f"https://{host}"
         else:
             s3_url = host
         # TODO: Allow the location to be passed in via config
@@ -348,7 +348,7 @@ class Boto3Manager(object):
         multipart_info["manifest"] = {"Parts": []}
         multipart_info["md5_sum"] = hashlib.md5()
         multipart_info["sha256_sum"] = hashlib.sha256()
-        multipart_info["start_time"] = time.clock()
+        multipart_info["start_time"] = time.perf_counter()
         mp_info = self.conns[
             multipart_info["dst_info"]["s3_loc"]
         ].create_multipart_upload(
@@ -375,7 +375,7 @@ class Boto3Manager(object):
             )
         except ClientError as exception:
             raise Exception(
-                "Unable to complete mulitpart %s: %s" % (mp_info["mp_id"], exception)
+                "Unable to complete mulitpart {}: {}".format(mp_info["mp_id"], exception)
             )
 
     def upload_multipart_chunk(self, mp_info):
@@ -439,7 +439,7 @@ class Boto3Manager(object):
                 Bucket=src_info["bucket_name"], Key=src_info["key_name"]
             )
         except ClientError as exception:
-            raise Exception("Unable to get %s: %s" % (src_info["url"], exception))
+            raise Exception("Unable to get {}: {}".format(src_info["url"], exception))
 
         if src_key_info:
             src_key = src_key_info.get("Body", None)
@@ -469,13 +469,13 @@ class Boto3Manager(object):
                     chunk = self.download_object_part(key=src_key)
                 except ClientError as exception:
                     raise Exception(
-                        "Unable to read from %s: %s" % (src_key.name, exception)
+                        f"Unable to read from {src_key.name}: {exception}"
                     )
 
             # write the remaining data
             self.upload_multipart_chunk(mp_info=mp_info)
 
-            cur_time = time.clock()
+            cur_time = time.perf_counter()
             size_info = get_nearest_file_size(mp_info["total_size"])
             base_transfer_rate = float(mp_info["total_size"]) / float(
                 cur_time - mp_info["start_time"]
@@ -653,11 +653,9 @@ class Boto3Manager(object):
                 if file_key_size > 0:
                     sys.stdout.write(
                         "{:6.02f}%\r".format(
-                            (
                                 float(result["bytes_transferred"])
                                 / float(file_key_size)
                                 * 100.0
-                            )
                         )
                     )
                 else:

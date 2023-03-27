@@ -12,7 +12,7 @@ from .storage import (  # noqa
 )
 
 
-class ContextDecorator(object):
+class ContextDecorator:
     def __call__(self, f):
         @functools.wraps(f)
         def decorated(*args, **kwds):

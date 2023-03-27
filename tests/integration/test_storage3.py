@@ -59,7 +59,7 @@ def test_get_connection():
 def test_parse_url():
     config = get_config()
     manager = Boto3Manager(config)
-    s3_info = manager.parse_url("s3://localhost:7000/{}/{}".format(TEST_BUCKET, ORIGINAL_FILE_NAME))
+    s3_info = manager.parse_url(f"s3://localhost:7000/{TEST_BUCKET}/{ORIGINAL_FILE_NAME}")
     assert s3_info == {'url': 's3://localhost:7000/test_bucket/original_file', 's3_loc': 'localhost:7000', 'bucket_name': 'test_bucket', 'key_name': 'original_file'}
 
 
@@ -67,7 +67,7 @@ def test_parse_url():
 def test_get_url():
     config = get_config()
     manager = Boto3Manager(config)
-    key = manager.get_url("s3://localhost:7000/{}/{}".format(TEST_BUCKET, ORIGINAL_FILE_NAME))
+    key = manager.get_url(f"s3://localhost:7000/{TEST_BUCKET}/{ORIGINAL_FILE_NAME}")
     assert key['ResponseMetadata']['HTTPStatusCode'] == 200
 
 
@@ -84,8 +84,8 @@ def test_list_buckets():
 def test_create_multipart_upload():
     config = get_config()
     manager = Boto3Manager(config)
-    src_url = "s3://localhost:7000/{}/{}".format(TEST_BUCKET, ORIGINAL_FILE_NAME)
-    dst_url = "s3://localhost:7000/{}/{}".format(TEST_BUCKET, COPIED_FILE_NAME)
+    src_url = f"s3://localhost:7000/{TEST_BUCKET}/{ORIGINAL_FILE_NAME}"
+    dst_url = f"s3://localhost:7000/{TEST_BUCKET}/{COPIED_FILE_NAME}"
     mp_info = manager.create_multipart_upload(src_url=src_url, dst_url=dst_url)
 
     assert 'md5_sum' in mp_info
@@ -106,8 +106,8 @@ def test_create_multipart_upload():
 def test_complete_multipart_upload():
     config = get_config()
     manager = Boto3Manager(config)
-    src_url = "s3://localhost:7000/{}/{}".format(TEST_BUCKET, ORIGINAL_FILE_NAME)
-    dst_url = "s3://localhost:7000/{}/{}".format(TEST_BUCKET, COPIED_FILE_NAME)
+    src_url = f"s3://localhost:7000/{TEST_BUCKET}/{ORIGINAL_FILE_NAME}"
+    dst_url = f"s3://localhost:7000/{TEST_BUCKET}/{COPIED_FILE_NAME}"
     mp_info = manager.create_multipart_upload(src_url=src_url, dst_url=dst_url)
 
     manager.complete_multipart_upload(mp_info=mp_info)
@@ -124,8 +124,8 @@ def test_complete_multipart_upload():
 def test_copy_multipart_file():
     config = get_config()
     manager = Boto3Manager(config)
-    src_url = "s3://localhost:7000/{}/{}".format(TEST_BUCKET, ORIGINAL_FILE_NAME)
-    dst_url = "s3://localhost:7000/{}/{}".format(TEST_BUCKET, COPIED_FILE_NAME)
+    src_url = f"s3://localhost:7000/{TEST_BUCKET}/{ORIGINAL_FILE_NAME}"
+    dst_url = f"s3://localhost:7000/{TEST_BUCKET}/{COPIED_FILE_NAME}"
     mp_info = manager.create_multipart_upload(src_url=src_url, dst_url=dst_url)
 
     res = manager.copy_multipart_file(src_info=mp_info['src_info'], dst_info=mp_info['dst_info'])
@@ -142,7 +142,7 @@ def test_copy_multipart_file():
 def test_load_file():
     config = get_config()
     manager = Boto3Manager(config)
-    url = "s3://localhost:7000/{}/{}".format(TEST_BUCKET, ORIGINAL_FILE_NAME)
+    url = f"s3://localhost:7000/{TEST_BUCKET}/{ORIGINAL_FILE_NAME}"
     file_content = manager.load_file(url=url)
     assert file_content == 'test' * LARGE_NUMBER_TO_WRITE
 
@@ -151,7 +151,7 @@ def test_load_file():
 def test_checksum_s3_key():
     config = get_config()
     manager = Boto3Manager(config)
-    url = "s3://localhost:7000/{}/{}".format(TEST_BUCKET, ORIGINAL_FILE_NAME)
+    url = f"s3://localhost:7000/{TEST_BUCKET}/{ORIGINAL_FILE_NAME}"
     res = manager.checksum_s3_key(url=url)
 
     assert res['md5_sum'] == 'bc0354f0646794a755a4276435ec5a6c'

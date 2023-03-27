@@ -1,4 +1,3 @@
-#!/usr/bin/env python -*- coding: utf-8 -*-
 """
 server_tail
 ----------------------------------
@@ -52,12 +51,12 @@ def create_tailer(args):
 
     # Create product of {servers} x {files}
     setup = {
-        '{}@{}'.format(args.user, server): args.files
+        f'{args.user}@{server}': args.files
         for server in args.servers
     }
 
     # Tell the user the setup
-    print('Using key: {}'.format(key))
+    print(f'Using key: {key}')
     print(json.dumps(setup, indent=2))
 
     # Read the key and decrypt if necessary
@@ -65,7 +64,7 @@ def create_tailer(args):
         key = paramiko.RSAKey.from_private_key_file(key)
     except paramiko.ssh_exception.PasswordRequiredException as e:
         print('Doh! ' + str(e))
-        key_pass = getpass.getpass('password for {}: '.format(args.identity))
+        key_pass = getpass.getpass(f'password for {args.identity}: ')
         key = paramiko.RSAKey.from_private_key_file(key, password=key_pass)
 
     # Create tailer
@@ -94,7 +93,7 @@ def main(parser=None):
 
         if host != last_host:
             last_host = host
-            header = '{:30s}  {}'.format(host, filename)
+            header = f'{host:30s}  {filename}'
             print('\n' + header)
 
         print('\t' + line)
