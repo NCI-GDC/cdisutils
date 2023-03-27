@@ -122,8 +122,7 @@ class dbGaPXReferencer:
 
         """
 
-        self.logger.info('Looking up project {}-{}'
-                         .format(program_name, project_code))
+        self.logger.info(f'Looking up project {program_name}-{project_code}')
 
         with self.db.session_scope():
             project = (self.db.nodes(Project)
