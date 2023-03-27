@@ -65,7 +65,7 @@ def print_running_status(
 ):
     """ Print the status of a transfer, given time and size """
     size_info = get_nearest_file_size(transferred_bytes)
-    cur_time = time.clock()
+    cur_time = time.process_time()
     base_transfer_rate = float(transferred_bytes) / float(cur_time - start_time)
     transfer_info = get_nearest_file_size(base_transfer_rate)
     cur_conv_size = float(transferred_bytes) / float(size_info[0])
@@ -348,7 +348,7 @@ class Boto3Manager:
         multipart_info["manifest"] = {"Parts": []}
         multipart_info["md5_sum"] = hashlib.md5()
         multipart_info["sha256_sum"] = hashlib.sha256()
-        multipart_info["start_time"] = time.clock()
+        multipart_info["start_time"] = time.process_time()
         mp_info = self.conns[
             multipart_info["dst_info"]["s3_loc"]
         ].create_multipart_upload(
@@ -475,7 +475,7 @@ class Boto3Manager:
             # write the remaining data
             self.upload_multipart_chunk(mp_info=mp_info)
 
-            cur_time = time.clock()
+            cur_time = time.process_time()
             size_info = get_nearest_file_size(mp_info["total_size"])
             base_transfer_rate = float(mp_info["total_size"]) / float(
                 cur_time - mp_info["start_time"]
