@@ -3,9 +3,8 @@ from io import BytesIO
 from cdisutils.log import get_logger
 from urllib.parse import urlparse
 
-log = get_logger(
-    "excel"
-)
+log = get_logger("excel")
+
 
 def combine_headers(headers):
     index = 0
@@ -43,15 +42,14 @@ def read_headers(rows, num_headers=1):
     header = None
     headers = []
     if num_headers > 2:
-        log.info('Sorry, can only process 2 or fewer header rows')
+        log.info("Sorry, can only process 2 or fewer header rows")
         return header
     header_combine = num_headers > 1
     for row in rows:
         if num_headers > 0:
             header_data = []
             for cell in row:
-                header_data.append(cell.value.strip()
-                                   if cell.value.strip() else None)
+                header_data.append(cell.value.strip() if cell.value.strip() else None)
             headers.append(header_data)
             num_headers -= 1
         if num_headers == 0:
@@ -81,8 +79,7 @@ def read_columns(ws, num_headers=1):
         return sheet_data
     for row in rows:
         for h, cell in zip(header, row):
-            value = (cell.value.strip()
-                     if isinstance(cell.value, str) else cell.value)
+            value = cell.value.strip() if isinstance(cell.value, str) else cell.value
             if h not in sheet_data:
                 sheet_data[h] = [value]
             elif value:
@@ -136,19 +133,16 @@ def read_sheet(ws=None, num_headers=1):
     return sheet_data
 
 
-def load_spreadsheet_from_s3(boto_man=None,
-                             uri=None,
-                             sheet_names=None,
-                             num_headers=1):
+def load_spreadsheet_from_s3(boto_man=None, uri=None, sheet_names=None, num_headers=1):
     downloading = True
     total_transfer = 0
     data = None
     file_data = bytearray()
-    chunk_size=16777216
+    chunk_size = 16777216
     urlparts = urlparse(uri)
-    s3_loc =  urlparts.netloc.split('.')[0]
-    bucket = urlparts.path.split('/')[1]
-    key_name = urlparts.path.split('/')[-1]
+    s3_loc = urlparts.netloc.split(".")[0]
+    bucket = urlparts.path.split("/")[1]
+    key_name = urlparts.path.split("/")[-1]
 
     # This is a bit tricky here. openpyxl likes a file, so we're
     # tricking it a bit by loading the data first, because we want to
@@ -159,15 +153,13 @@ def load_spreadsheet_from_s3(boto_man=None,
     try:
         wb = openpyxl.load_workbook(filename=BytesIO(file_data))
     except Exception as e:
-        print(f'Hmm, something wrong: {e}')
-        if key_name.endswith('xls'):
-            print('Loading as xlsx')
-            wb = openpyxl.load_workbook(filename=BytesIO(file_data),
-                                        data_only=False)
+        print(f"Hmm, something wrong: {e}")
+        if key_name.endswith("xls"):
+            print("Loading as xlsx")
+            wb = openpyxl.load_workbook(filename=BytesIO(file_data), data_only=False)
         else:
-            print('Loading as xls')
-            wb = openpyxl.load_workbook(filename=BytesIO(file_data),
-                                        data_only=True)
+            print("Loading as xls")
+            wb = openpyxl.load_workbook(filename=BytesIO(file_data), data_only=True)
     else:
         pass
     ws = None
@@ -177,7 +169,6 @@ def load_spreadsheet_from_s3(boto_man=None,
             if sheet_name in name:
                 log.info("Found sheet: %s" % name)
                 ws = wb[name]
-                data[sheet_name] = read_sheet(ws=ws,
-                                              num_headers=num_headers)
+                data[sheet_name] = read_sheet(ws=ws, num_headers=num_headers)
 
     return data

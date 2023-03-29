@@ -18,6 +18,7 @@ class ContextDecorator:
         def decorated(*args, **kwds):
             with self:
                 return f(*args, **kwds)
+
         return decorated
 
 

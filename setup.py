@@ -21,7 +21,7 @@ setup(
         "Programming Language :: Python :: 3.6",
         "License :: OSI Approved :: Apache Software License",
     ],
-    python_requires='>=3.6, <4',
+    python_requires=">=3.6, <4",
     packages=["cdisutils"],
     # Note that some of these ranges have generous lower bounds since some
     # consumers of cdisutils might still expect older versions.
@@ -30,7 +30,7 @@ setup(
         "boto3~=1.9",
         "python-dateutil~=2.4",
         "PyYAML>=3.11,<6.0",
-        "urllib3>=1.0,<1.26",           # for moto and boto2
+        "urllib3>=1.0,<1.26",  # for moto and boto2
     ],
     # Some lesser-used parts of cdisutils require extra dependencies.
     extras_require={

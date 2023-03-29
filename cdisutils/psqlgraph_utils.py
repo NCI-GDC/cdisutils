@@ -7,6 +7,7 @@ Holds commonly used PsqlGraph utilities
 
 import os
 
+
 def add_db_conn_args(parser):
     """Adds args to :param:`parser` for db connection
 
@@ -15,29 +16,33 @@ def add_db_conn_args(parser):
     """
 
     parser.add_argument(
-        '-PD',
-        '--pg-database',
+        "-PD",
+        "--pg-database",
         type=str,
-        default=os.environ.get('PG_DATABASE','test'),
-        help='The name of the PostgreSQL database to connect to')
+        default=os.environ.get("PG_DATABASE", "test"),
+        help="The name of the PostgreSQL database to connect to",
+    )
     parser.add_argument(
-        '-PH',
-        '--pg-host',
+        "-PH",
+        "--pg-host",
         type=str,
-        default=os.environ.get('PG_HOST','localhost'),
-        help='The host of the PostgreSQL server')
+        default=os.environ.get("PG_HOST", "localhost"),
+        help="The host of the PostgreSQL server",
+    )
     parser.add_argument(
-        '-PP',
-        '--pg-password',
+        "-PP",
+        "--pg-password",
         type=str,
-        default=os.environ.get('PG_PASS',None),
-        help='The password for given user (-u). Prompt if not provided')
+        default=os.environ.get("PG_PASS", None),
+        help="The password for given user (-u). Prompt if not provided",
+    )
     parser.add_argument(
-        '-PU',
-        '--pg-user',
+        "-PU",
+        "--pg-user",
         type=str,
-        default=os.environ.get('PG_USER','test'),
-        help='The user with which to connect to PostgreSQL')
+        default=os.environ.get("PG_USER", "test"),
+        help="The user with which to connect to PostgreSQL",
+    )
 
     return parser
 
@@ -51,8 +56,8 @@ def extract_db_conn_args(args):
 
     args = vars(args) if not isinstance(args, dict) else args
     return dict(
-        database=args.get('pg_database'),
-        host=args.get('pg_host'),
-        password=args.get('pg_password'),
-        user=args.get('pg_user'),
+        database=args.get("pg_database"),
+        host=args.get("pg_host"),
+        password=args.get("pg_password"),
+        user=args.get("pg_user"),
     )

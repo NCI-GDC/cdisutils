@@ -1,5 +1,6 @@
 import yaml, pprint, os, logging, json
 
+
 class Settings:
 
     """
@@ -24,7 +25,7 @@ class Settings:
 
         return self.settings[attribute]
 
-    def __init__(self, path = None):
+    def __init__(self, path=None):
         self.path = self.default_path
         self.load(path)
 
@@ -41,7 +42,7 @@ class Settings:
     def __repr__(self):
         return str(self.settings)
 
-    def load(self, path = None):
+    def load(self, path=None):
 
         if path is None and self.path is None:
             logging.error("Unable to load settings, no path specified.")

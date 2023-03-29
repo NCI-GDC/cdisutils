@@ -26,7 +26,7 @@ urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 urllib3.disable_warnings(urllib3.exceptions.SNIMissingWarning)
 
 # magic number here for multipart chunk size, change with care
-DEFAULT_MP_CHUNK_SIZE = 1073741824      # 1GiB
+DEFAULT_MP_CHUNK_SIZE = 1073741824  # 1GiB
 
 # 16 MiB is used because it was tested for performance, if
 # speed issues are seen, this is a good value to try and
@@ -63,7 +63,7 @@ def get_nearest_file_size(size):
 def print_running_status(
     transferred_bytes=None, start_time=None, total_size=None, msg_id=0
 ):
-    """ Print the status of a transfer, given time and size """
+    """Print the status of a transfer, given time and size"""
     size_info = get_nearest_file_size(transferred_bytes)
     cur_time = time.perf_counter()
     base_transfer_rate = float(transferred_bytes) / float(cur_time - start_time)
@@ -92,7 +92,7 @@ def print_running_status(
 
 
 def load_creds():
-    """ Load s3 creds from environment vars """
+    """Load s3 creds from environment vars"""
     s3_creds = {}
     s3_key_mapping = {
         "ACCESS_KEY": "aws_access_key_id",
@@ -103,7 +103,7 @@ def load_creds():
     }
     s3_endpoint_defaults = {
         "ceph": "ceph.service.consul",
-        "cephb" : "gdc-cephb-objstore.osdc.io",
+        "cephb": "gdc-cephb-objstore.osdc.io",
         "cleversafe": "cleversafe.service.consul",
         "aws": "s3-external-1.amazonaws.com",
         "jamboree": "gdc-accessors-jamboree.osdc.io",
@@ -220,11 +220,11 @@ class Boto3Manager:
         self.chunk_size = DEFAULT_DOWNLOAD_CHUNK_SIZE
 
     def __getitem__(self, host):
-        """ Internal call for getting a connection """
+        """Internal call for getting a connection"""
         return self.get_connection(host)
 
     def harmonize_host(self, host):
-        """ Harmonize a host name to get one in the list of hosts """
+        """Harmonize a host name to get one in the list of hosts"""
         matches = {
             alias: aliased_host
             for alias, aliased_host in self.host_aliases.items()
@@ -241,16 +241,16 @@ class Boto3Manager:
             return host
 
     def get_connection(self, host):
-        """ Get an s3 connection handle """
+        """Get an s3 connection handle"""
         return self.conns[self.harmonize_host(host)]
 
     def connect(self):
-        """ Connect to all hosts in config """
+        """Connect to all hosts in config"""
         for host in self.config:
             self.conns[host] = self.new_connection_to(host)
 
     def new_connection_to(self, host):
-        """ Connect to a given host """
+        """Connect to a given host"""
         if "https" not in host:
             s3_url = f"https://{host}"
         else:
@@ -273,7 +273,7 @@ class Boto3Manager:
         return conn
 
     def parse_url(self, url=None):
-        """ Parse a URL into a dictionary with component parts """
+        """Parse a URL into a dictionary with component parts"""
         s3_info = {"url": url, "s3_loc": None, "bucket_name": None, "key_name": None}
         parts = urlparse(url)
         for key in self.config:
@@ -317,7 +317,7 @@ class Boto3Manager:
         return key
 
     def list_buckets(self, host=None):
-        """ List all buckets available for a given host """
+        """List all buckets available for a given host"""
         bucket_list = []
         if host:
             if host in self.conns:
@@ -375,11 +375,13 @@ class Boto3Manager:
             )
         except ClientError as exception:
             raise Exception(
-                "Unable to complete mulitpart {}: {}".format(mp_info["mp_id"], exception)
+                "Unable to complete mulitpart {}: {}".format(
+                    mp_info["mp_id"], exception
+                )
             )
 
     def upload_multipart_chunk(self, mp_info):
-        """ Uploads a multipart chunk of an object """
+        """Uploads a multipart chunk of an object"""
 
         mp_info["stream_buffer"].seek(0)
         try:
@@ -407,7 +409,7 @@ class Boto3Manager:
             mp_info["chunk_index"] += 1
 
     def download_object_part(self, key):
-        """ Downloads a chunk of an object """
+        """Downloads a chunk of an object"""
         return key.read(amt=self.chunk_size)
 
     def copy_multipart_file(
@@ -468,9 +470,7 @@ class Boto3Manager:
                 try:
                     chunk = self.download_object_part(key=src_key)
                 except ClientError as exception:
-                    raise Exception(
-                        f"Unable to read from {src_key.name}: {exception}"
-                    )
+                    raise Exception(f"Unable to read from {src_key.name}: {exception}")
 
             # write the remaining data
             self.upload_multipart_chunk(mp_info=mp_info)
@@ -507,7 +507,7 @@ class Boto3Manager:
         }
 
     def load_file(self, url=None, stream_status=False):
-        """ Load an object into memory """
+        """Load an object into memory"""
 
         downloading = True
         file_data = bytearray()
@@ -524,7 +524,7 @@ class Boto3Manager:
             if file_key:
                 while downloading:
                     try:
-                        chunk = self.download_object_part(key=file_key['Body'])
+                        chunk = self.download_object_part(key=file_key["Body"])
                     except ClientError as exception:
                         downloading = False
                         self.log.error(
@@ -605,7 +605,7 @@ class Boto3Manager:
         return key_data
 
     def checksum_s3_key(self, url=None):
-        """ Get the checksum of an s3 object """
+        """Get the checksum of an s3 object"""
         result = {"transfer_time": 0, "bytes_transferred": 0}
         md5sum = hashlib.md5()
         sha = hashlib.sha256()
@@ -653,9 +653,9 @@ class Boto3Manager:
                 if file_key_size > 0:
                     sys.stdout.write(
                         "{:6.02f}%\r".format(
-                                float(result["bytes_transferred"])
-                                / float(file_key_size)
-                                * 100.0
+                            float(result["bytes_transferred"])
+                            / float(file_key_size)
+                            * 100.0
                         )
                     )
                 else:
