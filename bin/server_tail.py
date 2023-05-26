@@ -24,24 +24,22 @@ def prepend_home_dir(filename):
     Pulled and modified from python-sshtail - jsm
     """
     return os.path.expanduser(
-        os.path.join(os.environ['HOME'], '.ssh', filename)
-        if not filename.startswith('/')
-        and not filename.startswith('./')
-        and not filename.startswith('..')
-        and not filename.startswith('~/')
+        os.path.join(os.environ["HOME"], ".ssh", filename)
+        if not filename.startswith("/")
+        and not filename.startswith("./")
+        and not filename.startswith("..")
+        and not filename.startswith("~/")
         else filename
     )
 
 
 def add_parser_args(parser):
-    parser.add_argument("servers", nargs='+')
-    parser.add_argument('-f', "--file",
-                        action='append', default=[], dest='files')
-    parser.add_argument("-u", "--user",
-                        default='ubuntu')
+    parser.add_argument("servers", nargs="+")
+    parser.add_argument("-f", "--file", action="append", default=[], dest="files")
+    parser.add_argument("-u", "--user", default="ubuntu")
     parser.add_argument("-i", "--identity", required=True)
-    parser.add_argument('-w', '--width', type=int, default=128)
-    parser.add_argument('-d', '--delay', type=float, default=0.5)
+    parser.add_argument("-w", "--width", type=int, default=128)
+    parser.add_argument("-d", "--delay", type=float, default=0.5)
     return parser
 
 
@@ -50,21 +48,18 @@ def create_tailer(args):
     key = prepend_home_dir(args.identity)
 
     # Create product of {servers} x {files}
-    setup = {
-        f'{args.user}@{server}': args.files
-        for server in args.servers
-    }
+    setup = {f"{args.user}@{server}": args.files for server in args.servers}
 
     # Tell the user the setup
-    print(f'Using key: {key}')
+    print(f"Using key: {key}")
     print(json.dumps(setup, indent=2))
 
     # Read the key and decrypt if necessary
     try:
         key = paramiko.RSAKey.from_private_key_file(key)
     except paramiko.ssh_exception.PasswordRequiredException as e:
-        print('Doh! ' + str(e))
-        key_pass = getpass.getpass(f'password for {args.identity}: ')
+        print("Doh! " + str(e))
+        key_pass = getpass.getpass(f"password for {args.identity}: ")
         key = paramiko.RSAKey.from_private_key_file(key, password=key_pass)
 
     # Create tailer
@@ -87,17 +82,17 @@ def main(parser=None):
 
     # Poll ssh connections for logs!
     for host, filename, line in tailer.tail():
-        line = textwrap.fill(line, width=args.width, subsequent_indent='\t')
-        host = colored(host, 'green')
-        filename = colored(filename, 'blue', attrs=['bold'])
+        line = textwrap.fill(line, width=args.width, subsequent_indent="\t")
+        host = colored(host, "green")
+        filename = colored(filename, "blue", attrs=["bold"])
 
         if host != last_host:
             last_host = host
-            header = f'{host:30s}  {filename}'
-            print('\n' + header)
+            header = f"{host:30s}  {filename}"
+            print("\n" + header)
 
-        print('\t' + line)
+        print("\t" + line)
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     main()

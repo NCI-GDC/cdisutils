@@ -1,13 +1,24 @@
 import pytest
 
-from cdisutils.storage import cancel_stale_multiparts, md5sum_with_size, url_for_boto_key
+from cdisutils.storage import (
+    cancel_stale_multiparts,
+    md5sum_with_size,
+    url_for_boto_key,
+)
 
 import boto
 
 
 @pytest.fixture
 def get_bucket(moto_server_no_ssl):
-    conn = boto.connect_s3(host='localhost', port=7000, calling_format='boto.s3.connection.OrdinaryCallingFormat', is_secure=False, aws_access_key_id='testing', aws_secret_access_key='testing')
+    conn = boto.connect_s3(
+        host="localhost",
+        port=7000,
+        calling_format="boto.s3.connection.OrdinaryCallingFormat",
+        is_secure=False,
+        aws_access_key_id="testing",
+        aws_secret_access_key="testing",
+    )
     buck = conn.create_bucket("foo")
     return buck
 
@@ -37,4 +48,4 @@ def test_md5sum_with_size(get_bucket):
     key.set_contents_from_string("test")
     (md5, size) = md5sum_with_size(key)
     assert size == key.size
-    assert md5.encode('ascii') == key.md5
+    assert md5.encode("ascii") == key.md5

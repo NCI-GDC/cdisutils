@@ -16,22 +16,22 @@ from .errors import (
     UserError,
 )
 
-PHSID_REGEX = re.compile(r'(phs\d+.v)(\d)(.*)')
+PHSID_REGEX = re.compile(r"(phs\d+.v)(\d)(.*)")
 
-COMPLETE_STATE = ['released', 'completed_by_gpa']
+COMPLETE_STATE = ["released", "completed_by_gpa"]
 
 
 class dbGaPXReferencer:
 
     #: The url from which to pull telemetry reports for project with given
     #: accession number (to be formatted in)
-    DEFAULT_URL = ('http://www.ncbi.nlm.nih.gov/projects/gap/cgi-bin/'
-                   'GetSampleStatus.cgi?study_id={phsid}&rettype=xml')
+    DEFAULT_URL = (
+        "http://www.ncbi.nlm.nih.gov/projects/gap/cgi-bin/"
+        "GetSampleStatus.cgi?study_id={phsid}&rettype=xml"
+    )
 
     def __init__(self, db, logger=None, proxies={}):
-        """Instantiate a class to crossvalidate entity existence in dbGaP.
-
-        """
+        """Instantiate a class to crossvalidate entity existence in dbGaP."""
         self._cached_telemetry_xmls = {
             # "phsid": "telemetry xml"
         }
@@ -39,7 +39,7 @@ class dbGaPXReferencer:
         self.db = db
         self.proxies = proxies
         self.logger = logger or logging.getLogger("dbGapXReferencer")
-        self.logger.info('Creating new dbGaP Cross Referencer')
+        self.logger.info("Creating new dbGaP Cross Referencer")
 
     def request_telemetry_report(self, phsid):
         """Makes a web request to :param:`url` for the telemetry report for
@@ -62,24 +62,27 @@ class dbGaPXReferencer:
         # use previous version of telemetry report
         # if current one is not released
 
-        if xml['DbGap']['Study']['@registration_status'] not in COMPLETE_STATE:
-            current_version = xml['DbGap']['Study']['@accession']
+        if xml["DbGap"]["Study"]["@registration_status"] not in COMPLETE_STATE:
+            current_version = xml["DbGap"]["Study"]["@accession"]
             match = PHSID_REGEX.match(current_version)
             if not match:
                 raise InternalError(
                     "Unable to cross reference cases with dbGaP. "
-                    "Invalid accession number {} in telemery report from dbGap"
-                    .format(phsid))
+                    "Invalid accession number {} in telemery report from dbGap".format(
+                        phsid
+                    )
+                )
             else:
                 previous_version = (
-                    match.group(1) + str(int(match.group(2)) - 1) +
-                    match.group(3))
+                    match.group(1) + str(int(match.group(2)) - 1) + match.group(3)
+                )
                 xml = self.get_xml(previous_version)
-                if xml['DbGap']['Study']['@registration_status'] != 'released':
+                if xml["DbGap"]["Study"]["@registration_status"] != "released":
                     raise InternalError(
                         "Unable to cross reference cases with dbGaP. "
                         "Last two versions of telemetry reports from dbGap "
-                        "are not released")
+                        "are not released"
+                    )
                 return xml
         else:
             return xml
@@ -88,15 +91,17 @@ class dbGaPXReferencer:
         if phsid not in self._cached_telemetry_xmls:
 
             url = self.DEFAULT_URL.format(phsid=phsid)
-            self.logger.info(f'Pulling telemetry report from {url}')
+            self.logger.info(f"Pulling telemetry report from {url}")
 
             # Request the XML
             r = requests.get(url, proxies=self.proxies)
             if r.status_code != 200:
-                msg = ("Unable to cross reference cases with dbGaP. "
-                       "Either this project is not registered in dbGaP or we "
-                       "were temporarily unable to communicate with dbGaP. "
-                       "Please try again later.")
+                msg = (
+                    "Unable to cross reference cases with dbGaP. "
+                    "Either this project is not registered in dbGaP or we "
+                    "were temporarily unable to communicate with dbGaP. "
+                    "Please try again later."
+                )
                 self.logger.error(msg)
                 raise InternalError(msg)
 
@@ -106,8 +111,9 @@ class dbGaPXReferencer:
                 self._cached_telemetry_xmls[phsid] = xml
 
             except ExpatError as e:
-                msg = ("Unable to parse dbGaP telemetry report. "
-                       "Please try again later.")
+                msg = (
+                    "Unable to parse dbGaP telemetry report. " "Please try again later."
+                )
                 self.logger.exception(e)
                 raise InternalError(msg)
 
@@ -122,18 +128,19 @@ class dbGaPXReferencer:
 
         """
 
-        self.logger.info(f'Looking up project {program_name}-{project_code}')
+        self.logger.info(f"Looking up project {program_name}-{project_code}")
 
         with self.db.session_scope():
-            project = (self.db.nodes(Project)
-                       .props(code=project_code)
-                       .path('programs')
-                       .props(name=program_name)
-                       .scalar())
+            project = (
+                self.db.nodes(Project)
+                .props(code=project_code)
+                .path("programs")
+                .props(name=program_name)
+                .scalar()
+            )
 
             if not project:
-                msg = ("Unable to find project {} in database"
-                       .format(project_code))
+                msg = "Unable to find project {} in database".format(project_code)
                 self.logger.error(msg)
                 raise InternalError(msg)
 
@@ -149,8 +156,9 @@ class dbGaPXReferencer:
 
         # Return the projects phsid, (default to the project's
         # program's phsid)
-        return (project.dbgap_accession_number or
-                project.programs[0].dbgap_accession_number)
+        return (
+            project.dbgap_accession_number or project.programs[0].dbgap_accession_number
+        )
 
     def get_project_dbgap_bypassed_cases(self, project):
         """Check if there is a list of bypassed cases associated with the
@@ -161,19 +169,18 @@ class dbGaPXReferencer:
 
         """
 
-        return project.sysan.get('dbgap_bypassed_cases') or []
+        return project.sysan.get("dbgap_bypassed_cases") or []
 
     def get_registered_cases(self, project):
-        """Gets the submitter_id of all the cases in latest telemetry report.
-        """
+        """Gets the submitter_id of all the cases in latest telemetry report."""
         phsid = self.get_project_accession(project)
 
         # Pull the telemetry report for the project
         telemetry = self.request_telemetry_report(phsid)
 
         # Parse our the sample ids
-        samples = telemetry['DbGap']['Study']['SampleList']['Sample']
-        return {s['@submitted_subject_id'] for s in samples}
+        samples = telemetry["DbGap"]["Study"]["SampleList"]["Sample"]
+        return {s["@submitted_subject_id"] for s in samples}
 
     def case_exists(self, program_name, project_code, case_submitter_id):
         """Checks to see if case exists in latest telemetry report.
@@ -192,8 +199,9 @@ class dbGaPXReferencer:
         project = self.get_project(program_name, project_code)
         # Check against a local bypass list
         if case_submitter_id in self.get_project_dbgap_bypassed_cases(project):
-            self.logger.warning('Found case {} in local bypass list'
-                                .format(case_submitter_id))
+            self.logger.warning(
+                "Found case {} in local bypass list".format(case_submitter_id)
+            )
             return True
 
         submitter_ids = self.get_registered_cases(project)
@@ -201,19 +209,18 @@ class dbGaPXReferencer:
 
     def assert_project_exists(self, project_code, phsid):
         url = self.DEFAULT_URL.format(phsid=phsid)
-        self.logger.info(f'Pulling telemetry report from {url}')
+        self.logger.info(f"Pulling telemetry report from {url}")
 
         # Request the XML
         r = requests.get(url, proxies=self.proxies)
         if r.status_code == 400:
-            msg = ("Project appears not to exist in dbGaP.")
+            msg = "Project appears not to exist in dbGaP."
             raise UserError(msg)
 
         # Parse the XML
         try:
             xml = xmltodict.parse(r.text)
         except ExpatError as e:
-            msg = ("Unable to parse dbGaP telemetry report. "
-                   "Please try again later.")
+            msg = "Unable to parse dbGaP telemetry report. " "Please try again later."
             self.logger.exception(e)
             raise InternalError(msg)
