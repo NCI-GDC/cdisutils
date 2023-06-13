@@ -18,10 +18,10 @@ setup(
     long_description_content_type="text/markdown",
     classifiers=[
         "Programming Language :: Python :: 3",
-        "Programming Language :: Python :: 3.6",
+        "Programming Language :: Python :: 3.7",
         "License :: OSI Approved :: Apache Software License",
     ],
-    python_requires=">=3.6, <4",
+    python_requires=">=3.7, <4",
     packages=["cdisutils"],
     # Note that some of these ranges have generous lower bounds since some
     # consumers of cdisutils might still expect older versions.
@@ -49,6 +49,7 @@ setup(
             "pytest>4.6",
             "pytest-cov>2.10",
             "flask",
+            "flask_cors",
         ],
     },
 )
