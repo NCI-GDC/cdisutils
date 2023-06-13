@@ -45,11 +45,11 @@ setup(
         # bin/nova_status.py
         "nova": ["python-novaclient~=3.2"],
         "dev": [
-            "moto>1",
+            "moto~=1.2",
             "pytest>4.6",
             "pytest-cov>2.10",
-            "flask",
-            "flask_cors",
+            "flask~=2.0",  # required for moto_server
+            "flask_cors~=3.0",  # required for moto_server
         ],
     },
 )

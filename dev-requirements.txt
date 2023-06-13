@@ -8,8 +8,12 @@ atomicwrites==1.4.0
     # via pytest
 attrs==19.3.0
     # via pytest
+aws-xray-sdk==0.95
+    # via moto
 boto==2.49.0
-    # via cdisutils (setup.py)
+    # via
+    #   cdisutils (setup.py)
+    #   moto
 boto3==1.26.153
     # via
     #   cdisutils (setup.py)
@@ -25,28 +29,36 @@ cffi==1.15.1
     # via cryptography
 chardet==3.0.4
     # via requests
-click==7.1.2
+click==8.1.3
     # via flask
 coverage[toml]==5.2.1
     # via pytest-cov
 cryptography==41.0.1
     # via moto
-flask==1.1.4
+docker==5.0.3
+    # via moto
+ecdsa==0.18.0
+    # via python-jose
+flask==2.2.5
     # via
     #   cdisutils (setup.py)
     #   flask-cors
 flask-cors==3.0.10
     # via cdisutils (setup.py)
+future==0.18.3
+    # via python-jose
 idna==2.10
     # via requests
-importlib-metadata==0.23
+importlib-metadata==6.6.0
     # via
-    #   moto
+    #   click
+    #   flask
+    #   jsonpickle
     #   pluggy
     #   pytest
-itsdangerous==1.1.0
+itsdangerous==2.1.2
     # via flask
-jinja2==2.11.2
+jinja2==3.1.2
     # via
     #   flask
     #   moto
@@ -54,11 +66,19 @@ jmespath==0.10.0
     # via
     #   boto3
     #   botocore
-markupsafe==1.1.1
-    # via jinja2
+jsondiff==1.1.1
+    # via moto
+jsonpickle==3.0.1
+    # via aws-xray-sdk
+markupsafe==2.1.3
+    # via
+    #   jinja2
+    #   werkzeug
+mock==5.0.2
+    # via moto
 more-itertools==5.0.0
     # via pytest
-moto==4.1.11
+moto==1.3.7
     # via cdisutils (setup.py)
 packaging==20.4
     # via pytest
@@ -66,8 +86,12 @@ pluggy==0.13.1
     # via pytest
 py==1.9.0
     # via pytest
+pyaml==23.5.8
+    # via moto
 pycparser==2.21
     # via cffi
+pycryptodome==3.18.0
+    # via python-jose
 pyparsing==2.4.7
     # via packaging
 pytest==4.6.11
@@ -81,12 +105,19 @@ python-dateutil==2.8.2
     #   botocore
     #   cdisutils (setup.py)
     #   moto
+python-jose==2.0.2
+    # via moto
+pytz==2023.3
+    # via moto
 pyyaml==5.3.1
     # via
     #   cdisutils (setup.py)
+    #   pyaml
     #   responses
 requests==2.24.0
     # via
+    #   aws-xray-sdk
+    #   docker
     #   moto
     #   responses
 responses==0.23.1
@@ -95,17 +126,22 @@ s3transfer==0.6.1
     # via boto3
 six==1.16.0
     # via
+    #   ecdsa
     #   flask-cors
     #   more-itertools
+    #   moto
     #   packaging
     #   pytest
     #   python-dateutil
+    #   python-jose
 toml==0.10.1
     # via coverage
 types-pyyaml==6.0.12.10
     # via responses
 typing-extensions==4.6.3
-    # via responses
+    # via
+    #   importlib-metadata
+    #   responses
 urllib3==1.25.11
     # via
     #   botocore
@@ -114,10 +150,14 @@ urllib3==1.25.11
     #   responses
 wcwidth==0.2.5
     # via pytest
-werkzeug==1.0.1
+websocket-client==1.5.3
+    # via docker
+werkzeug==2.2.3
     # via
     #   flask
     #   moto
+wrapt==1.15.0
+    # via aws-xray-sdk
 xmltodict==0.12.0
     # via moto
 zipp==1.2.0
