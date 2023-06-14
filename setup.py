@@ -44,7 +44,7 @@ setup(
         # bin/nova_status.py
         "nova": ["python-novaclient~=3.2"],
         "dev": [
-            "moto~=2.1",
+            "moto~=4.1",
             "requests~=2.31",
             "pytest>4.6",
             "pytest-cov>2.10",

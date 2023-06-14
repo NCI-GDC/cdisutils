@@ -170,14 +170,6 @@ def test_simulate_cleversafe_to_aws_multipart_copy(create_large_file):
     manager = Boto3Manager(s3_configs)
     conn_a = manager.get_connection(f"{moto_server_a.url}")
     conn_b = manager.get_connection(f"{moto_server_b.url}")
-    # it can take the servers a little bit up come up.
-    while True:
-        try:
-            conn_a.list_buckets()
-            conn_b.list_buckets()
-            break
-        except:
-            time.sleep(1)
 
     # load in the initial data
     conn_a.create_bucket(Bucket=TEST_BUCKET)
