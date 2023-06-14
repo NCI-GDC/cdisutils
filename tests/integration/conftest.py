@@ -18,11 +18,11 @@ class MotoServer(Thread):
     without interfering with other aspects of the code
     """
 
-    def __init__(self, port=7000, is_secure=True):
+    def __init__(self, hostname="localhost", port=7000, is_secure=True):
         Thread.__init__(self)
         self._proc = None
         self.port = port
-        self.hostname = "localhost"
+        self.hostname = hostname
         self.server_id = str(uuid.uuid4())
         self.is_secure = is_secure
 
