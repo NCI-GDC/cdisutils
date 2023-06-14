@@ -106,29 +106,6 @@ def moto_server_gen(hostname: str, port: int, is_secure: bool):
     mock.stop()
 
 
-def large_object_in_host_gen(url: str, verify=False):
-    # Load large data in host_a
-    s3 = boto3.client(
-        "s3",
-        endpoint_url=f"https://{url}",
-        verify=verify,
-        aws_access_key_id="testing",
-        aws_secret_access_key="testing",
-    )
-    s3.create_bucket(Bucket=TEST_BUCKET)
-    s3.put_object(
-        Body=open(str(create_large_file), "rb"),
-        Bucket=TEST_BUCKET,
-        Key=ORIGINAL_FILE_NAME,
-    )
-    original_object = s3.head_object(Bucket=TEST_BUCKET, Key=ORIGINAL_FILE_NAME)
-    assert original_object["ContentLength"] == create_large_file.stat().st_size
-
-    yield original_object
-
-    s3.delete_object(Bucket=TEST_BUCKET, Key=ORIGINAL_FILE_NAME)
-
-
 def gen_moto_server(hostname="localhost", port=7001, is_secure=True):
     mock = MotoServer(hostname=hostname, port=port, is_secure=is_secure)
     mock.start()
@@ -139,7 +116,7 @@ def gen_moto_server(hostname="localhost", port=7001, is_secure=True):
 @pytest.mark.usefixtures()
 def test_simulate_cleversafe_to_aws_multipart_copy(create_large_file):
     """
-    The multipart upload, is used to support transferring from one S3 provider to another. Otherwise one should use the boto3 s3.copy method.
+    The multipart upload is used to support transferring large files from one S3 provider to another.
     """
     # Start the servers
     host_a = "localhost"
