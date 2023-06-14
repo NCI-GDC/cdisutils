@@ -26,11 +26,10 @@ setup(
     # Note that some of these ranges have generous lower bounds since some
     # consumers of cdisutils might still expect older versions.
     install_requires=[
-        "boto~=2.36",
-        "boto3~=1.9",
+        "boto3~=1.26",
         "python-dateutil~=2.4",
         "PyYAML>=3.11,<6.0",
-        "urllib3>=1.0,<1.26",  # for moto and boto2
+        "urllib3~=1.26",  # for moto and boto2
     ],
     # Some lesser-used parts of cdisutils require extra dependencies.
     extras_require={
@@ -45,7 +44,8 @@ setup(
         # bin/nova_status.py
         "nova": ["python-novaclient~=3.2"],
         "dev": [
-            "moto~=1.2",
+            "moto~=2.1",
+            "requests~=2.31",
             "pytest>4.6",
             "pytest-cov>2.10",
             "flask~=2.0",  # required for moto_server
