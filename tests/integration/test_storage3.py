@@ -113,7 +113,6 @@ def gen_moto_server(hostname="localhost", port=7001, is_secure=True):
     mock.stop()
 
 
-@pytest.mark.usefixtures()
 def test_simulate_cleversafe_to_aws_multipart_copy(create_large_file):
     """
     The multipart upload is used to support transferring large files from one S3 provider to another.
