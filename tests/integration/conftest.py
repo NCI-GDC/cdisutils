@@ -83,6 +83,27 @@ class MotoServer(Thread):
         logger.info("Shutdown successful for mock Boto Service id: " + self.server_id)
 
 
+@pytest.fixture
+def moto_server_factory():
+    """Fixure factory
+
+    Yields:
+        function: Creates a function that can be invoked to start multiple moto servers.
+    """
+    servers = []
+
+    def _gen_moto_server(hostname="localhost", port=7000, is_secure=True):
+        server = MotoServer(hostname=hostname, port=port, is_secure=is_secure)
+        server.start()
+        servers.append(server)
+        return server
+
+    yield _gen_moto_server
+
+    for server in servers:
+        server.stop()
+
+
 @pytest.fixture(scope="module")
 def moto_server():
 

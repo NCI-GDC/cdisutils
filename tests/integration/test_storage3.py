@@ -99,21 +99,9 @@ def test_list_buckets():
     assert bucket_list[0]["Name"] == TEST_BUCKET
 
 
-def moto_server_gen(hostname: str, port: int, is_secure: bool):
-    mock = MotoServer(hostname=hostname, port=port, is_secure=is_secure)
-    mock.start()
-    yield mock
-    mock.stop()
-
-
-def gen_moto_server(hostname="localhost", port=7001, is_secure=True):
-    mock = MotoServer(hostname=hostname, port=port, is_secure=is_secure)
-    mock.start()
-    yield mock
-    mock.stop()
-
-
-def test_simulate_cleversafe_to_aws_multipart_copy(create_large_file):
+def test_simulate_cleversafe_to_aws_multipart_copy(
+    create_large_file, moto_server_factory
+):
     """
     The multipart upload is used to support transferring large files from one S3 provider to another.
     """
@@ -121,13 +109,13 @@ def test_simulate_cleversafe_to_aws_multipart_copy(create_large_file):
     host_a = "localhost"
     port_a = 7001
     url_a = f"{host_a}:{port_a}"
-    moto_server_a = next(gen_moto_server(hostname=host_a, port=port_a))
+    moto_server_a = moto_server_factory(hostname=host_a, port=port_a)
     assert url_a == moto_server_a.url
 
     host_b = "localhost"
     port_b = 7002
     url_b = f"{host_b}:{port_b}"
-    moto_server_b = next(gen_moto_server(hostname=host_b, port=port_b))
+    moto_server_b = moto_server_factory(hostname=host_b, port=port_b)
     assert url_b == moto_server_b.url
 
     # Setup the BotoManager
