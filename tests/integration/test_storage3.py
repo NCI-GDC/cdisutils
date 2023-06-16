@@ -142,6 +142,9 @@ def test_simulate_cleversafe_to_aws_multipart_copy(
         Bucket=TEST_BUCKET,
         Key=ORIGINAL_FILE_NAME,
     )
+    head = conn_a.head_object(Bucket=TEST_BUCKET, Key=ORIGINAL_FILE_NAME)
+    assert head["ResponseMetadata"]["HTTPStatusCode"] == 200
+    assert head["ContentLength"] == LARGE_NUMBER_TO_WRITE * len("test")
 
     # create the destination bucket
     conn_b.create_bucket(Bucket=TEST_BUCKET)
@@ -160,10 +163,6 @@ def test_simulate_cleversafe_to_aws_multipart_copy(
         "sha256_sum": "c97d1f1ab2ae91dbe05ad8e20bc58fc6f3af28e98d98ca8dbeee31a9d32e1e5b",
         "bytes_transferred": 40000000,
     }
-
-    head = conn_a.head_object(Bucket=TEST_BUCKET, Key=ORIGINAL_FILE_NAME)
-    assert head["ResponseMetadata"]["HTTPStatusCode"] == 200
-    assert head["ContentLength"] == LARGE_NUMBER_TO_WRITE * len("test")
 
     head = conn_b.head_object(Bucket=TEST_BUCKET, Key=COPIED_FILE_NAME)
     assert head["ResponseMetadata"]["HTTPStatusCode"] == 200
