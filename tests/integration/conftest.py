@@ -18,11 +18,11 @@ class MotoServer(Thread):
     without interfering with other aspects of the code
     """
 
-    def __init__(self, port=7000, is_secure=True):
+    def __init__(self, hostname="localhost", port=7000, is_secure=True):
         Thread.__init__(self)
         self._proc = None
         self.port = port
-        self.hostname = "localhost"
+        self.hostname = hostname
         self.server_id = str(uuid.uuid4())
         self.is_secure = is_secure
 
@@ -81,6 +81,27 @@ class MotoServer(Thread):
             logger.error(f"Error: {e}", exc_info=True)
             self._proc.terminate()
         logger.info("Shutdown successful for mock Boto Service id: " + self.server_id)
+
+
+@pytest.fixture
+def moto_server_factory():
+    """Fixure factory
+
+    Yields:
+        function: Creates a function that can be invoked to start multiple moto servers.
+    """
+    servers = []
+
+    def _gen_moto_server(hostname="localhost", port=7000, is_secure=True):
+        server = MotoServer(hostname=hostname, port=port, is_secure=is_secure)
+        server.start()
+        servers.append(server)
+        return server
+
+    yield _gen_moto_server
+
+    for server in servers:
+        server.stop()
 
 
 @pytest.fixture(scope="module")

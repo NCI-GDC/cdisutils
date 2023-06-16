@@ -3,14 +3,6 @@
 import os
 import functools
 
-# Migrated to .storage, re-exported to maintain interface
-from .storage import (  # noqa
-    BotoManager,
-    cancel_stale_multiparts,
-    md5sum_with_size,
-    url_for_boto_key,
-)
-
 
 class ContextDecorator:
     def __call__(self, f):

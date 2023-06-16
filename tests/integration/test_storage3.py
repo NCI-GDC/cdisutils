@@ -1,9 +1,11 @@
 import os
-
+import time
+import typing
 import boto3
 import pytest
 
 from cdisutils.storage3 import Boto3Manager
+from tests.integration.conftest import MotoServer
 
 
 LARGE_NUMBER_TO_WRITE = 10000000
@@ -13,7 +15,7 @@ S3_URL = "s3://{}".format(os.getenv("CLEVERSAFE_ENDPOINT", "localhost:7000"))
 TEST_BUCKET = "test_bucket"
 
 
-def get_config():
+def get_config() -> typing.Dict:
     return {
         "localhost:7000": {
             "aws_secret_access_key": "testing",
@@ -97,88 +99,76 @@ def test_list_buckets():
     assert bucket_list[0]["Name"] == TEST_BUCKET
 
 
-@pytest.mark.usefixtures("create_large_object")
-def test_create_multipart_upload():
-    config = get_config()
-    manager = Boto3Manager(config)
-    src_url = f"s3://localhost:7000/{TEST_BUCKET}/{ORIGINAL_FILE_NAME}"
-    dst_url = f"s3://localhost:7000/{TEST_BUCKET}/{COPIED_FILE_NAME}"
-    mp_info = manager.create_multipart_upload(src_url=src_url, dst_url=dst_url)
+def test_simulate_cleversafe_to_aws_multipart_copy(
+    create_large_file, moto_server_factory
+):
+    """
+    The multipart upload is used to support transferring large files from one S3 provider to another.
+    """
+    # Start the servers
+    host_a = "localhost"
+    port_a = 7001
+    url_a = f"{host_a}:{port_a}"
+    moto_server_a = moto_server_factory(hostname=host_a, port=port_a)
+    assert url_a == moto_server_a.url
 
-    assert "md5_sum" in mp_info
-    mp_info.pop("md5_sum")
-    assert "sha256_sum" in mp_info
-    mp_info.pop("sha256_sum")
-    assert "mp_id" in mp_info
-    mp_info.pop("mp_id")
-    assert "stream_buffer" in mp_info
-    mp_info.pop("stream_buffer")
-    assert "start_time" in mp_info
-    mp_info.pop("start_time")
+    host_b = "localhost"
+    port_b = 7002
+    url_b = f"{host_b}:{port_b}"
+    moto_server_b = moto_server_factory(hostname=host_b, port=port_b)
+    assert url_b == moto_server_b.url
 
-    assert mp_info == {
-        "dst_info": {
-            "url": "s3://localhost:7000/test_bucket/copied_file",
-            "s3_loc": "localhost:7000",
-            "bucket_name": "test_bucket",
-            "key_name": "copied_file",
+    # Setup the BotoManager
+    s3_configs = {
+        f"{moto_server_a.url}": {
+            "aws_secret_access_key": "testing",
+            "aws_access_key_id": "testing",
+            "verify": False,
         },
-        "src_info": {
-            "url": "s3://localhost:7000/test_bucket/original_file",
-            "s3_loc": "localhost:7000",
-            "bucket_name": "test_bucket",
-            "key_name": "original_file",
+        f"{moto_server_b.url}": {
+            "aws_secret_access_key": "testing",
+            "aws_access_key_id": "testing",
+            "verify": False,
         },
-        "mp_chunk_size": 1073741824,
-        "download_chunk_size": 16777216,
-        "cur_size": 0,
-        "chunk_index": 1,
-        "total_size": 0,
-        "manifest": {"Parts": []},
     }
+    manager = Boto3Manager(s3_configs)
+    conn_a = manager.get_connection(f"{moto_server_a.url}")
+    conn_b = manager.get_connection(f"{moto_server_b.url}")
 
-
-@pytest.mark.usefixtures("create_large_object")
-def test_complete_multipart_upload():
-    config = get_config()
-    manager = Boto3Manager(config)
-    src_url = f"s3://localhost:7000/{TEST_BUCKET}/{ORIGINAL_FILE_NAME}"
-    dst_url = f"s3://localhost:7000/{TEST_BUCKET}/{COPIED_FILE_NAME}"
-    mp_info = manager.create_multipart_upload(src_url=src_url, dst_url=dst_url)
-
-    manager.complete_multipart_upload(mp_info=mp_info)
-
-    conn = manager.get_connection("localhost:7000")
-    head = conn.head_object(Bucket=TEST_BUCKET, Key=ORIGINAL_FILE_NAME)
+    # load in the initial data
+    conn_a.create_bucket(Bucket=TEST_BUCKET)
+    conn_a.put_object(
+        Body=open(str(create_large_file), "rb"),
+        Bucket=TEST_BUCKET,
+        Key=ORIGINAL_FILE_NAME,
+    )
+    head = conn_a.head_object(Bucket=TEST_BUCKET, Key=ORIGINAL_FILE_NAME)
     assert head["ResponseMetadata"]["HTTPStatusCode"] == 200
     assert head["ContentLength"] == LARGE_NUMBER_TO_WRITE * len("test")
 
-    conn.delete_object(Bucket=TEST_BUCKET, Key=COPIED_FILE_NAME)
+    # create the destination bucket
+    conn_b.create_bucket(Bucket=TEST_BUCKET)
 
+    # Copy files from one host to the other using multipart
+    src_url = f"s3://{host_a}:{port_a}/{TEST_BUCKET}/{ORIGINAL_FILE_NAME}"
+    dst_url = f"s3://{host_b}:{port_b}/{TEST_BUCKET}/{COPIED_FILE_NAME}"
 
-@pytest.mark.usefixtures("create_large_object")
-def test_copy_multipart_file():
-    config = get_config()
-    manager = Boto3Manager(config)
-    src_url = f"s3://localhost:7000/{TEST_BUCKET}/{ORIGINAL_FILE_NAME}"
-    dst_url = f"s3://localhost:7000/{TEST_BUCKET}/{COPIED_FILE_NAME}"
-    mp_info = manager.create_multipart_upload(src_url=src_url, dst_url=dst_url)
+    src_info = manager.parse_url(src_url)
+    dst_info = manager.parse_url(dst_url)
 
-    res = manager.copy_multipart_file(
-        src_info=mp_info["src_info"], dst_info=mp_info["dst_info"]
-    )
+    # copy_multipart_file invokes the other multipart operation: create_multipart_upload, complete_multipart_upload
+    res = manager.copy_multipart_file(src_info=src_info, dst_info=dst_info)
     assert res == {
         "md5_sum": "bc0354f0646794a755a4276435ec5a6c",
         "sha256_sum": "c97d1f1ab2ae91dbe05ad8e20bc58fc6f3af28e98d98ca8dbeee31a9d32e1e5b",
         "bytes_transferred": 40000000,
     }
 
-    conn = manager.get_connection("localhost:7000")
-    head = conn.head_object(Bucket=TEST_BUCKET, Key=ORIGINAL_FILE_NAME)
+    head = conn_b.head_object(Bucket=TEST_BUCKET, Key=COPIED_FILE_NAME)
     assert head["ResponseMetadata"]["HTTPStatusCode"] == 200
     assert head["ContentLength"] == LARGE_NUMBER_TO_WRITE * len("test")
 
-    conn.delete_object(Bucket=TEST_BUCKET, Key=COPIED_FILE_NAME)
+    conn_b.delete_object(Bucket=TEST_BUCKET, Key=COPIED_FILE_NAME)
 
 
 @pytest.mark.usefixtures("create_large_object")
