@@ -1,0 +1,32 @@
+---
+
+include:
+  - project: nci-gdc/gitlab-templates
+    ref: 0.2.0
+    file:
+      - templates/global/full.yaml
+      - templates/python/full.yaml
+      - templates/common/python.yaml
+
+tox:
+  stage: test
+  image: ${BASE_CONTAINER_REGISTRY}/python3.7-builder
+  tags:
+    - dind
+  before_script:
+    - !reference [.load_github_key, script]
+    - pip install "tox<4"
+  script:
+    - tox -r -e py
+
+
+# used by release
+.python_versions:
+  parallel:
+    matrix:
+      - BUILD_PY_VERSION: [python3.7]
+      - RELEASE_PY_VERSION: [python3.7]
+
+release:
+  before_script:
+    - git fetch --unshallow || true
