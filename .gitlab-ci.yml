@@ -30,3 +30,5 @@ tox:
 release:
   before_script:
     - git fetch --unshallow || true
+  variables:
+    LEGACY_BASE_CONTAINER_VERSION: 2.3.1
