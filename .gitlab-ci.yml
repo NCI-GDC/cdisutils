@@ -7,6 +7,15 @@ include:
       - templates/global/full.yaml
       - templates/python/full.yaml
       - templates/common/python.yaml
+      - templates/deployments/salt-service.yaml
+
+.services:
+  allow_failure: true
+  stage: deploy
+  when: manual
+  parallel:
+    matrix:
+      - DEPLOY_SERVICE_LIST: [ esbuild ]
 
 tox:
   stage: test
