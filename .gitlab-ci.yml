@@ -2,7 +2,7 @@
 
 include:
   - project: nci-gdc/gitlab-templates
-    ref: 0.2.0
+    ref: 0.2.1
     file:
       - templates/global/full.yaml
       - templates/python/full.yaml
@@ -39,5 +39,3 @@ tox:
 release:
   before_script:
     - git fetch --unshallow || true
-  variables:
-    LEGACY_BASE_CONTAINER_VERSION: 2.3.1
