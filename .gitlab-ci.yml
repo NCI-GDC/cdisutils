@@ -19,7 +19,7 @@ include:
 
 tox:
   stage: test
-  image: ${BASE_CONTAINER_REGISTRY}/python3.7-builder
+  image: ${BASE_CONTAINER_REGISTRY}/python3.7-builder:${BASE_CONTAINER_VERSION}
   tags:
     - dind
   before_script:
