@@ -43,7 +43,6 @@ class Settings:
         return str(self.settings)
 
     def load(self, path=None):
-
         if path is None and self.path is None:
             logging.error("Unable to load settings, no path specified.")
             return self

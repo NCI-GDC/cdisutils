@@ -66,7 +66,6 @@ class MotoServer(Thread):
         )
 
     def stop(self):
-
         if not self._proc:
             return
         try:
@@ -106,7 +105,6 @@ def moto_server_factory():
 
 @pytest.fixture(scope="module")
 def moto_server():
-
     mock = MotoServer()
     mock.start()
 
@@ -117,7 +115,6 @@ def moto_server():
 
 @pytest.fixture(scope="module")
 def moto_server_no_ssl():
-
     mock = MotoServer(is_secure=False)
     mock.start()
 
