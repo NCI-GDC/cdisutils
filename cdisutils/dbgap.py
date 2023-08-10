@@ -2,7 +2,7 @@
 Defines functionality to check case existence in dbGaP.
 """
 
-from gdcdatamodel.models import Project
+from gdcdatamodel2.models import Project
 from xml.parsers.expat import ExpatError
 
 import logging
