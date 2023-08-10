@@ -36,7 +36,7 @@ setup(
         # cdisutils.dbgap
         # If you include this extra, your application/library should specify
         # the expected versions of gdcdatamodel2 and the associated dictionary.
-        "dbgap": ["gdcdatamodel2", "requests~=2.7", "xmltodict~=0.9"],
+        "dbgap": ["gdcdatamodel2", "requests>=2.7", "xmltodict>=0.9"],
         #
         # cdisutils.excel
         "excel": ["openpyxl~=2.4"],
