@@ -1,7 +1,7 @@
 ---
 repos:
   - repo: https://github.com/pre-commit/pre-commit-hooks
-    rev: v4.1.0 # last version to support py36
+    rev: v4.4.0
     hooks:
       - id: check-json
       - id: check-toml
@@ -18,7 +18,7 @@ repos:
       - id: trailing-whitespace
         args: [--markdown-linebreak-ext=md]
   - repo: https://github.com/Lucas-C/pre-commit-hooks
-    rev: v1.1.15 # last version to support py36
+    rev: v1.5.3
     hooks:
       - id: forbid-crlf
       - id: forbid-tabs
@@ -27,11 +27,11 @@ repos:
       - id: remove-tabs
         exclude: .(py|yaml|yml|tsv)$
   - repo: https://github.com/psf/black
-    rev: 22.3.0
+    rev: 23.7.0
     hooks:
       - id: black
   - repo: git@github.com:Yelp/detect-secrets
-    rev: v0.13.0
+    rev: v1.4.0
     hooks:
       - id: detect-secrets
         args: ['--baseline', '.secrets.baseline']

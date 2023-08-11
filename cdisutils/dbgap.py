@@ -2,7 +2,7 @@
 Defines functionality to check case existence in dbGaP.
 """
 
-from gdcdatamodel.models import Project
+from gdcdatamodel2.models import Project
 from xml.parsers.expat import ExpatError
 
 import logging
@@ -22,7 +22,6 @@ COMPLETE_STATE = ["released", "completed_by_gpa"]
 
 
 class dbGaPXReferencer:
-
     #: The url from which to pull telemetry reports for project with given
     #: accession number (to be formatted in)
     DEFAULT_URL = (
@@ -89,7 +88,6 @@ class dbGaPXReferencer:
 
     def get_xml(self, phsid):
         if phsid not in self._cached_telemetry_xmls:
-
             url = self.DEFAULT_URL.format(phsid=phsid)
             self.logger.info(f"Pulling telemetry report from {url}")
 

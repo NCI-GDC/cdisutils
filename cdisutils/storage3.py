@@ -647,7 +647,6 @@ class Boto3Manager:
                 if (len(chunk) < self.chunk_size) and (
                     result["bytes_transferred"] >= file_key_size
                 ):
-
                     running = False
 
                 if file_key_size > 0:
