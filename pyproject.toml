@@ -1,0 +1,29 @@
+[build-system]
+requires = ["setuptools>=45", "wheel", "setuptools_scm>=6.2,<7"]
+
+[tool.black]
+include = '\.pyi?$'
+target-version = ["py37"]
+
+[tool.coverage.html]
+title = "inspector coverage report"
+directory = "docs/htmlcov"
+show_contexts = true
+
+[tool.coverage.run]
+branch = true
+context = "unit tests"
+source = ["inspector"]
+
+[tool.isort]
+profile = "black"
+known_first_party = ["cdisutils"]
+
+[tool.setuptools_scm]
+local_scheme = "no-local-version"
+
+[tool.towncrier]
+package = "cdisutils"
+package_dir = "cdisutils"
+filename = "changelog.rst"
+directory = "changelog"

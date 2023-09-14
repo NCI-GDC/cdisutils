@@ -9,13 +9,12 @@ Various utilities useful for working on cdis systems.
 - [cdisutils](#cdisutils)
   - [`cdisutils.net`](#cdisutilsnet)
     - [`no_proxy`](#no_proxy)
-  - [`cdisutils.storage`](#cdisutilsstorage)
+  - [`cdisutils.storage3`](#cdisutilsstorage3)
     - [`is_probably_swift_segments(obj)`](#is_probably_swift_segmentsobj)
     - [`swift_stream(obj)`](#swift_streamobj)
   - [`cdisutils.log`](#cdisutilslog)
     - [`get_logger(name)`](#get_loggername)
   - [`cdisutils.tungsten`](#cdisutilstungsten)
-  - [`cdisutils.settings`](#cdisutilssettings)
 - [Setup pre-commit hook to check for secrets](#setup-pre-commit-hook-to-check-for-secrets)
 - [contributing](#contributing)
 
@@ -32,7 +31,7 @@ Networking utilities.
 function that can be used as a decorator or a context manager to
 temporarily disable the pdc http_proxy
 
-## `cdisutils.storage`
+## `cdisutils.storage3`
 
 For working with storage via apache libcloud
 
@@ -58,10 +57,6 @@ reasonable format string, set to level INFO.
 ## `cdisutils.tungsten`
 
 Utilities for working with tungsten provisioned machines
-
-## `cdisutils.settings`
-
-
 
 # Setup pre-commit hook to check for secrets
 

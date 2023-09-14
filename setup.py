@@ -1,14 +1,12 @@
 from setuptools import setup
 
-
 with open("README.md") as readme_in:
     long_description = readme_in.read()
 
 
 setup(
     name="cdisutils",
-    setup_requires=["setuptools_scm<6"],
-    use_scm_version={"local_scheme": "dirty-tag"},
+    setup_requires=["setuptools_scm"],
     author="Center for Translational Data Science",
     author_email="support@nci-gdc.datacommons.io",
     description="Miscellaneous utilities useful for interaction with CTDS systems.",
@@ -19,6 +17,10 @@ setup(
     classifiers=[
         "Programming Language :: Python :: 3",
         "Programming Language :: Python :: 3.7",
+        "Programming Language :: Python :: 3.8",
+        "Programming Language :: Python :: 3.9",
+        "Programming Language :: Python :: 3.10",
+        "Programming Language :: Python :: 3.11",
         "License :: OSI Approved :: Apache Software License",
     ],
     python_requires=">=3.7, <4",
@@ -28,8 +30,7 @@ setup(
     install_requires=[
         "boto3~=1.26",
         "python-dateutil~=2.4",
-        "PyYAML>=3.11,<6.0",
-        "urllib3~=1.26",
+        "urllib3>=1.26,<3",
     ],
     # Some lesser-used parts of cdisutils require extra dependencies.
     extras_require={

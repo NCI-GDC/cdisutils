@@ -1,7 +1,7 @@
 """General utility belt."""
 
-import os
 import functools
+import os
 
 
 class ContextDecorator:

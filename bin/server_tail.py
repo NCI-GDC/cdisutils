@@ -5,15 +5,15 @@ server_tail
 Tail the same file from multiple servers at once
 """
 
-from sshtail import SSHMultiTailer
-from termcolor import colored
-
 import argparse
+import getpass
 import json
 import os
-import paramiko
-import getpass
 import textwrap
+
+import paramiko
+from sshtail import SSHMultiTailer
+from termcolor import colored
 
 
 def prepend_home_dir(filename):

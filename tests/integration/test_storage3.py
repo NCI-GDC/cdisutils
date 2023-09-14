@@ -1,12 +1,12 @@
 import os
 import time
 import typing
+
 import boto3
 import pytest
 
 from cdisutils.storage3 import Boto3Manager
 from tests.integration.conftest import MotoServer
-
 
 LARGE_NUMBER_TO_WRITE = 10000000
 ORIGINAL_FILE_NAME = "original_file"

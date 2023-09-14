@@ -2,43 +2,25 @@
 
 include:
   - project: nci-gdc/gitlab-templates
-    ref: 0.2.1
+    ref: 0.3.1
     file:
       - templates/global/full.yaml
       - templates/python/full.yaml
       - templates/common/python.yaml
-      - templates/deployments/salt-service.yaml
 
 variables:
-  PRE_COMMIT_VERSION: 3.3.3
-
-.services:
-  allow_failure: true
-  stage: deploy
-  when: manual
-  parallel:
-    matrix:
-      - DEPLOY_SERVICE_LIST: [ esbuild ]
+  PRE_COMMIT_VERSION: 3.4.0
 
 tox:
-  stage: test
-  image: ${BASE_CONTAINER_REGISTRY}/python3.7-builder:${BASE_CONTAINER_VERSION}
-  tags:
-    - dind
-  before_script:
-    - !reference [.load_github_key, script]
-    - pip install "tox<4"
-  script:
-    - tox -r -e py
-
-
-# used by release
-.python_versions:
   parallel:
     matrix:
-      - BUILD_PY_VERSION: [python3.7]
-      - RELEASE_PY_VERSION: [python3.7]
+      - BUILD_PY_VERSION: [python3.7, python3.8, python3.9, python3.10, python3.11]
+  script:
+    - pip install "tox<4"
+    - tox -r -e py
 
 release:
+  variables:
+    RELEASE_PY_VERSION: python3.7
   before_script:
     - git fetch --unshallow || true

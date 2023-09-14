@@ -1,7 +1,9 @@
-import openpyxl
 from io import BytesIO
-from cdisutils.log import get_logger
 from urllib.parse import urlparse
+
+import openpyxl
+
+from cdisutils.log import get_logger
 
 log = get_logger("excel")
 
