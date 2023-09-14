@@ -1,6 +1,5 @@
 from setuptools import setup
 
-
 with open("README.md") as readme_in:
     long_description = readme_in.read()
 
@@ -28,8 +27,7 @@ setup(
     install_requires=[
         "boto3~=1.26",
         "python-dateutil~=2.4",
-        "PyYAML>=3.11,<6.0",
-        "urllib3~=1.26",
+        "urllib3>=1.26,<3",
     ],
     # Some lesser-used parts of cdisutils require extra dependencies.
     extras_require={
