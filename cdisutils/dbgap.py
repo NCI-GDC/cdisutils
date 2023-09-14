@@ -105,9 +105,7 @@ class dbGaPXReferencer:
                 self._cached_telemetry_xmls[phsid] = xml
 
             except ExpatError as e:
-                msg = (
-                    "Unable to parse dbGaP telemetry report. " "Please try again later."
-                )
+                msg = "Unable to parse dbGaP telemetry report. Please try again later."
                 self.logger.exception(e)
                 raise InternalError(msg)
 
