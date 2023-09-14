@@ -2,19 +2,15 @@
 Defines functionality to check case existence in dbGaP.
 """
 
-from gdcdatamodel2.models import Project
+import logging
+import re
 from xml.parsers.expat import ExpatError
 
-import logging
 import requests
 import xmltodict
-import re
+from gdcdatamodel2.models import Project
 
-
-from .errors import (
-    InternalError,
-    UserError,
-)
+from .errors import InternalError, UserError
 
 PHSID_REGEX = re.compile(r"(phs\d+.v)(\d)(.*)")
 

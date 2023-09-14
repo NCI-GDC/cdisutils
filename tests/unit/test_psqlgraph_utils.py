@@ -2,11 +2,7 @@
 
 import argparse
 
-
-from cdisutils.psqlgraph_utils import (
-    extract_db_conn_args,
-    add_db_conn_args,
-)
+from cdisutils.psqlgraph_utils import add_db_conn_args, extract_db_conn_args
 
 
 def test_add_db_conn_args_1():

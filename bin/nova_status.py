@@ -1,14 +1,14 @@
 #!/usr/bin/env python
 
-from argparse import ArgumentParser
-from collections import namedtuple, defaultdict, Counter
-from novaclient import client
-
-import novaclient
 import logging
 import os
 import re
+from argparse import ArgumentParser
+from collections import Counter, defaultdict, namedtuple
 from functools import reduce
+
+import novaclient
+from novaclient import client
 
 logger = logging.getLogger(__name__)
 logging.basicConfig(level=logging.INFO)

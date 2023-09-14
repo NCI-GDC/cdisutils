@@ -30,6 +30,20 @@ repos:
     rev: 23.7.0
     hooks:
       - id: black
+  - repo: https://github.com/pycqa/isort
+    rev: 5.12.0
+    hooks:
+      - id: isort
+        name: isort (python)
+        args: [--profile, black]
+      - id: isort
+        name: isort (cython)
+        types: [cython]
+        args: [--profile, black]
+      - id: isort
+        name: isort (pyi)
+        types: [pyi]
+        args: [--profile, black]
   - repo: git@github.com:Yelp/detect-secrets
     rev: v1.4.0
     hooks:
