@@ -8,6 +8,9 @@ include:
       - templates/python/full.yaml
       - templates/common/python.yaml
 
+variables:
+  PRE_COMMIT_VERSION: 3.4.0
+
 tox:
   parallel:
     matrix:
