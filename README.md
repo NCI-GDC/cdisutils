@@ -9,13 +9,12 @@ Various utilities useful for working on cdis systems.
 - [cdisutils](#cdisutils)
   - [`cdisutils.net`](#cdisutilsnet)
     - [`no_proxy`](#no_proxy)
-  - [`cdisutils.storage`](#cdisutilsstorage)
+  - [`cdisutils.storage3`](#cdisutilsstorage3)
     - [`is_probably_swift_segments(obj)`](#is_probably_swift_segmentsobj)
     - [`swift_stream(obj)`](#swift_streamobj)
   - [`cdisutils.log`](#cdisutilslog)
     - [`get_logger(name)`](#get_loggername)
   - [`cdisutils.tungsten`](#cdisutilstungsten)
-  - [`cdisutils.settings`](#cdisutilssettings)
 - [Setup pre-commit hook to check for secrets](#setup-pre-commit-hook-to-check-for-secrets)
 - [contributing](#contributing)
 
@@ -32,7 +31,7 @@ Networking utilities.
 function that can be used as a decorator or a context manager to
 temporarily disable the pdc http_proxy
 
-## `cdisutils.storage`
+## `cdisutils.storage3`
 
 For working with storage via apache libcloud
 
@@ -59,14 +58,10 @@ reasonable format string, set to level INFO.
 
 Utilities for working with tungsten provisioned machines
 
-## `cdisutils.settings`
-
-
-    
 # Setup pre-commit hook to check for secrets
 
 We use [pre-commit](https://pre-commit.com/) to setup pre-commit hooks for this repo.
-We use [detect-secrets](https://github.com/Yelp/detect-secrets) to search for secrets being committed into the repo. 
+We use [detect-secrets](https://github.com/Yelp/detect-secrets) to search for secrets being committed into the repo.
 
 To install the pre-commit hook, run
 ```
@@ -78,7 +73,7 @@ To update the .secrets.baseline file run
 detect-secrets scan --update .secrets.baseline
 ```
 
-`.secrets.baseline` contains all the string that were caught by detect-secrets but are not stored in plain text. Audit the baseline to view the secrets . 
+`.secrets.baseline` contains all the string that were caught by detect-secrets but are not stored in plain text. Audit the baseline to view the secrets .
 
 ```
 detect-secrets audit .secrets.baseline

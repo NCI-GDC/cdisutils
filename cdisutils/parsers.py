@@ -8,6 +8,7 @@ except ImportError:
 
 class S3URLParser:
     """Adapter for urlparse to facilitate working with S3 urls"""
+
     def __init__(self, s3_url):
         self._s3_url = s3_url
         self.scheme = None
@@ -53,7 +54,7 @@ class S3URLParser:
             self.scheme = parse_object.scheme
             self.netloc = parse_object.netloc
             # eg ['', 'bucket', 'key/name/goes/here']
-            path_parts = parse_object.path.split('/', 2)
+            path_parts = parse_object.path.split("/", 2)
 
             # Do not add preceding forward slashes.
             self.bucket = path_parts[1]
@@ -61,14 +62,14 @@ class S3URLParser:
 
     def get_url(self, new_style=False):
         if new_style:
-            return '{scheme}://{bucket}.{netloc}/{key}'.format(
+            return "{scheme}://{bucket}.{netloc}/{key}".format(
                 scheme=self.scheme,
                 bucket=self.bucket,
                 netloc=self.netloc,
                 key=self.key,
             )
 
-        return '{scheme}://{netloc}/{bucket}/{key}'.format(
+        return "{scheme}://{netloc}/{bucket}/{key}".format(
             scheme=self.scheme,
             netloc=self.netloc,
             bucket=self.bucket,

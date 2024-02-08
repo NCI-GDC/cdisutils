@@ -1,13 +1,6 @@
-import pytest
-
-import cdisutils.net as net
-import cdisutils.storage as storage
-
 import os
-import json
-import tempfile
-from contextlib import contextmanager
-from shutil import rmtree
+
+from cdisutils import net
 
 
 def test_no_proxy_cm():
@@ -24,7 +17,7 @@ def test_no_proxy_dec():
     @net.no_proxy()
     def inner():
         assert not os.environ.get("http_proxy")
+
     inner()
     assert os.environ["http_proxy"] == "http://foobar:1234"
     del os.environ["http_proxy"]
-

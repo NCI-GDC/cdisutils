@@ -1,23 +1,16 @@
 """General utility belt."""
 
-import os
 import functools
-
-# Migrated to .storage, re-exported to maintain interface
-from .storage import (  # noqa
-    BotoManager,
-    cancel_stale_multiparts,
-    md5sum_with_size,
-    url_for_boto_key,
-)
+import os
 
 
-class ContextDecorator(object):
+class ContextDecorator:
     def __call__(self, f):
         @functools.wraps(f)
         def decorated(*args, **kwds):
             with self:
                 return f(*args, **kwds)
+
         return decorated
 
 
