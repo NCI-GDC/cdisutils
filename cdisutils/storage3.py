@@ -23,7 +23,6 @@ from .log import get_logger
 # NOTE: These are to disable the cert mismatch for our object stores
 # should we ever fix that, we should remove these
 urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
-urllib3.disable_warnings(urllib3.exceptions.SNIMissingWarning)
 
 # magic number here for multipart chunk size, change with care
 DEFAULT_MP_CHUNK_SIZE = 1073741824  # 1GiB
