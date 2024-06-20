@@ -7,8 +7,7 @@ with open("README.md") as readme_in:
 
 setup(
     name="cdisutils",
-    setup_requires=["setuptools_scm<6"],
-    use_scm_version={"local_scheme": "dirty-tag"},
+    version="1.9.3",
     author="Center for Translational Data Science",
     author_email="support@nci-gdc.datacommons.io",
     description="Miscellaneous utilities useful for interaction with CTDS systems.",
@@ -21,16 +20,16 @@ setup(
         "Programming Language :: Python :: 3.6",
         "License :: OSI Approved :: Apache Software License",
     ],
-    python_requires=">=3.6, <4",
+    python_requires=">=3.6",
     packages=["cdisutils"],
     # Note that some of these ranges have generous lower bounds since some
     # consumers of cdisutils might still expect older versions.
     install_requires=[
-        "boto~=2.36",
-        "boto3~=1.9",
-        "python-dateutil~=2.4",
-        "PyYAML>=3.11,<6.0",
-        "urllib3>=1.0,<1.26",  # for moto and boto2
+        "boto>=2.36",
+        "boto3>=1.9",
+        "python-dateutil>=2.4",
+        "PyYAML>=3.11",
+        "urllib3>=1.0",
     ],
     # Some lesser-used parts of cdisutils require extra dependencies.
     extras_require={

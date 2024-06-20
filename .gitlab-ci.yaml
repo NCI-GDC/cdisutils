@@ -1,0 +1,24 @@
+include:
+  - project: nci-gdc/gitlab-templates
+    ref: 0.3.1
+    file:
+      - templates/global/full.yaml
+      - templates/python/full.yaml
+      - templates/common/python.yaml
+
+variables:
+  PRE_COMMIT_VERSION: 3.4.0
+
+tox:
+  parallel:
+    matrix:
+      - BUILD_PY_VERSION: [python3.6]
+  script:
+    - pip install "tox<4"
+    - tox -r -e py
+
+release:
+  variables:
+    RELEASE_PY_VERSION: python3.7
+  before_script:
+    - git fetch --unshallow || true
