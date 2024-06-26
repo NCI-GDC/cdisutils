@@ -1,0 +1,5 @@
+graft src/cdisutils
+prune tests
+global-exclude */__pycache__/*
+global-exclude *.pyc
+exclude .gitignore .gitlab-ci.yml .pre-commit-config.yaml .secrets.baseline
