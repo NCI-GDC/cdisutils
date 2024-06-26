@@ -58,9 +58,9 @@ class MotoServer(Thread):
         """
         logger.info("Starting a Moto Service id: " + self.server_id)
         if self.is_secure:
-            cmd = ["moto_server", "s3", "-s", "-p", str(self.port)]
+            cmd = ["moto_server", "-s", "-p", str(self.port)]
         else:
-            cmd = ["moto_server", "s3", "-p", str(self.port)]
+            cmd = ["moto_server", "-p", str(self.port)]
         self._proc = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
 
     def stop(self):

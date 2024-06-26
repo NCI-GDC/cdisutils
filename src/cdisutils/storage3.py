@@ -9,6 +9,7 @@ Utilities for working with object stores using boto3
 import hashlib
 import io
 import json
+import logging
 import os
 import re
 import sys
@@ -16,14 +17,9 @@ import time
 from urllib.parse import urlparse
 
 import boto3
-import urllib3
 from botocore.exceptions import ClientError
 
-from .log import get_logger
-
-# NOTE: These are to disable the cert mismatch for our object stores
-# should we ever fix that, we should remove these
-urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
+logger = logging.getLogger(__name__)
 
 # magic number here for multipart chunk size, change with care
 DEFAULT_MP_CHUNK_SIZE = 1073741824  # 1GiB
@@ -150,7 +146,7 @@ class Boto3Manager:
     which can be used transparently through this object.
     """
 
-    log = get_logger("boto3_manager")
+    log = logger
 
     def __init__(self, config=None, lazy=False, host_aliases=None, stream_status=False):
         """
