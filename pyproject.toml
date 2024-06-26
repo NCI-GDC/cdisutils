@@ -40,7 +40,8 @@ profile = "black"
 known_first_party = ["cdisutils"]
 
 [tool.setuptools_scm]
-local_scheme = "no-local-version"
+local_scheme = "versionista-local-format"
+version_scheme = "versionista-format"
 
 [tool.pytest.ini_options]
 minversion = 6.0
