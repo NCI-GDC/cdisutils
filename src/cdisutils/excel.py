@@ -1,11 +1,10 @@
+import logging
 from io import BytesIO
 from urllib.parse import urlparse
 
 import openpyxl
 
-from cdisutils.log import get_logger
-
-log = get_logger("excel")
+log = logging.getLogger(__name__)
 
 
 def combine_headers(headers):
