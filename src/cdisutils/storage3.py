@@ -5,6 +5,7 @@ cdisutils.storage3
 Utilities for working with object stores using boto3
 
 """
+
 import hashlib
 import io
 import json
@@ -59,9 +60,7 @@ def get_nearest_file_size(size):
     return value
 
 
-def print_running_status(
-    transferred_bytes=None, start_time=None, total_size=None, msg_id=0
-):
+def print_running_status(transferred_bytes=None, start_time=None, total_size=None, msg_id=0):
     """Print the status of a transfer, given time and size"""
     size_info = get_nearest_file_size(transferred_bytes)
     cur_time = time.perf_counter()
@@ -132,9 +131,7 @@ def load_creds():
                     elif isinstance(s3_inst_default[s3_key_mapping[key]], list):
                         if not s3_creds[s3_key][s3_key_mapping[key]]:
                             s3_creds[s3_key][s3_key_mapping[key]] = []
-                        s3_creds[s3_key][s3_key_mapping[key]].append(
-                            str(os.environ[env])
-                        )
+                        s3_creds[s3_key][s3_key_mapping[key]].append(str(os.environ[env]))
                     else:
                         s3_creds[s3_key][s3_key_mapping[key]] = str(os.environ[env])
 
@@ -262,9 +259,7 @@ class Boto3Manager:
         if cur_dict.get("verify") == "false":
             print("Skipping verify")
             cur_dict.pop("verify")
-            conn = boto3.client(
-                "s3", "us-east-1", endpoint_url=s3_url, verify=False, **cur_dict
-            )
+            conn = boto3.client("s3", "us-east-1", endpoint_url=s3_url, verify=False, **cur_dict)
         else:
             print("No verify found, using dict")
             conn = boto3.client("s3", "us-east-1", endpoint_url=s3_url, **cur_dict)
@@ -348,9 +343,7 @@ class Boto3Manager:
         multipart_info["md5_sum"] = hashlib.md5()
         multipart_info["sha256_sum"] = hashlib.sha256()
         multipart_info["start_time"] = time.perf_counter()
-        mp_info = self.conns[
-            multipart_info["dst_info"]["s3_loc"]
-        ].create_multipart_upload(
+        mp_info = self.conns[multipart_info["dst_info"]["s3_loc"]].create_multipart_upload(
             Bucket=multipart_info["dst_info"]["bucket_name"],
             Key=multipart_info["dst_info"]["key_name"],
         )
@@ -374,9 +367,7 @@ class Boto3Manager:
             )
         except ClientError as exception:
             raise Exception(
-                "Unable to complete mulitpart {}: {}".format(
-                    mp_info["mp_id"], exception
-                )
+                "Unable to complete mulitpart {}: {}".format(mp_info["mp_id"], exception)
             )
 
     def upload_multipart_chunk(self, mp_info):
@@ -411,9 +402,7 @@ class Boto3Manager:
         """Downloads a chunk of an object"""
         return key.read(amt=self.chunk_size)
 
-    def copy_multipart_file(
-        self, src_info=None, dst_info=None, stream_status=True, msg_id=0
-    ):
+    def copy_multipart_file(self, src_info=None, dst_info=None, stream_status=True, msg_id=0):
         """
         Routine to use boto3 to copy a file
         multipart between object stores
@@ -598,9 +587,7 @@ class Boto3Manager:
                         #    remaining_chars = set([c for c in line if not c.isalnum()])
                         skipped_lines += 1
 
-        self.log.info(
-            "%d lines in file, %d processed", len(file_data.split("\n")), len(key_data)
-        )
+        self.log.info("%d lines in file, %d processed", len(file_data.split("\n")), len(key_data))
         return key_data
 
     def checksum_s3_key(self, url=None):
@@ -634,9 +621,7 @@ class Boto3Manager:
                         self.log.error("Error reading: %s retry %d", exception, retries)
                         time.sleep(2)
                 else:
-                    self.log.error(
-                        "Error reading %s, got %d bytes", exception, len(chunk)
-                    )
+                    self.log.error("Error reading %s, got %d bytes", exception, len(chunk))
                     total_transfer += len(chunk)
                     md5sum.update(chunk)
                     sha.update(chunk)
@@ -651,9 +636,7 @@ class Boto3Manager:
                 if file_key_size > 0:
                     sys.stdout.write(
                         "{:6.02f}%\r".format(
-                            float(result["bytes_transferred"])
-                            / float(file_key_size)
-                            * 100.0
+                            float(result["bytes_transferred"]) / float(file_key_size) * 100.0
                         )
                     )
                 else:

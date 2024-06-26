@@ -1,6 +1,6 @@
 class UserError(Exception):
-    def __init__(self, message, code=400, json={}):
-        self.json = json
+    def __init__(self, message, code=400, json=None):
+        self.json = json or {}
         self.message = message
         self.code = code
 

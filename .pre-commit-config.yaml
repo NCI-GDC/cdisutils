@@ -1,7 +1,7 @@
 ---
 repos:
   - repo: https://github.com/pre-commit/pre-commit-hooks
-    rev: v4.4.0
+    rev: v4.6.0
     hooks:
       - id: check-json
       - id: check-toml
@@ -18,7 +18,7 @@ repos:
       - id: trailing-whitespace
         args: [--markdown-linebreak-ext=md]
   - repo: https://github.com/Lucas-C/pre-commit-hooks
-    rev: v1.5.4
+    rev: v1.5.5
     hooks:
       - id: forbid-crlf
       - id: forbid-tabs
@@ -27,11 +27,11 @@ repos:
       - id: remove-tabs
         exclude: .(py|yaml|yml|tsv)$
   - repo: https://github.com/psf/black
-    rev: 23.7.0
+    rev: 24.4.2
     hooks:
       - id: black
   - repo: https://github.com/pycqa/isort
-    rev: 5.12.0
+    rev: 5.13.2
     hooks:
       - id: isort
         name: isort (python)
@@ -45,7 +45,7 @@ repos:
         types: [pyi]
         args: [--profile, black]
   - repo: git@github.com:Yelp/detect-secrets
-    rev: v1.4.0
+    rev: v1.5.0
     hooks:
       - id: detect-secrets
         args: ['--baseline', '.secrets.baseline']
