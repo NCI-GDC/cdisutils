@@ -1,12 +1,10 @@
 import os
-import time
 import typing
 
 import boto3
 import pytest
 
 from cdisutils.storage3 import Boto3Manager
-from tests.integration.conftest import MotoServer
 
 LARGE_NUMBER_TO_WRITE = 10000000
 ORIGINAL_FILE_NAME = "original_file"
@@ -71,9 +69,7 @@ def test_get_connection():
 def test_parse_url():
     config = get_config()
     manager = Boto3Manager(config)
-    s3_info = manager.parse_url(
-        f"s3://localhost:7000/{TEST_BUCKET}/{ORIGINAL_FILE_NAME}"
-    )
+    s3_info = manager.parse_url(f"s3://localhost:7000/{TEST_BUCKET}/{ORIGINAL_FILE_NAME}")
     assert s3_info == {
         "url": "s3://localhost:7000/test_bucket/original_file",
         "s3_loc": "localhost:7000",
@@ -99,9 +95,7 @@ def test_list_buckets():
     assert bucket_list[0]["Name"] == TEST_BUCKET
 
 
-def test_simulate_cleversafe_to_aws_multipart_copy(
-    create_large_file, moto_server_factory
-):
+def test_simulate_cleversafe_to_aws_multipart_copy(create_large_file, moto_server_factory):
     """
     The multipart upload is used to support transferring large files from one S3 provider to another.
     """
@@ -188,7 +182,4 @@ def test_checksum_s3_key():
     res = manager.checksum_s3_key(url=url)
 
     assert res["md5_sum"] == "bc0354f0646794a755a4276435ec5a6c"
-    assert (
-        res["sha256_sum"]
-        == "c97d1f1ab2ae91dbe05ad8e20bc58fc6f3af28e98d98ca8dbeee31a9d32e1e5b"
-    )
+    assert res["sha256_sum"] == "c97d1f1ab2ae91dbe05ad8e20bc58fc6f3af28e98d98ca8dbeee31a9d32e1e5b"

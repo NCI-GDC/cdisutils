@@ -63,14 +63,10 @@ class dbGaPXReferencer:
             if not match:
                 raise InternalError(
                     "Unable to cross reference cases with dbGaP. "
-                    "Invalid accession number {} in telemery report from dbGap".format(
-                        phsid
-                    )
+                    "Invalid accession number {} in telemery report from dbGap".format(phsid)
                 )
             else:
-                previous_version = (
-                    match.group(1) + str(int(match.group(2)) - 1) + match.group(3)
-                )
+                previous_version = match.group(1) + str(int(match.group(2)) - 1) + match.group(3)
                 xml = self.get_xml(previous_version)
                 if xml["DbGap"]["Study"]["@registration_status"] != "released":
                     raise InternalError(
@@ -148,9 +144,7 @@ class dbGaPXReferencer:
 
         # Return the projects phsid, (default to the project's
         # program's phsid)
-        return (
-            project.dbgap_accession_number or project.programs[0].dbgap_accession_number
-        )
+        return project.dbgap_accession_number or project.programs[0].dbgap_accession_number
 
     def get_project_dbgap_bypassed_cases(self, project):
         """Check if there is a list of bypassed cases associated with the
@@ -191,9 +185,7 @@ class dbGaPXReferencer:
         project = self.get_project(program_name, project_code)
         # Check against a local bypass list
         if case_submitter_id in self.get_project_dbgap_bypassed_cases(project):
-            self.logger.warning(
-                "Found case {} in local bypass list".format(case_submitter_id)
-            )
+            self.logger.warning("Found case {} in local bypass list".format(case_submitter_id))
             return True
 
         submitter_ids = self.get_registered_cases(project)

@@ -1,2 +1,0 @@
-python-sshtail==0.0.2
-termcolor==1.1.0

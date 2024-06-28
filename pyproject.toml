@@ -1,29 +1,65 @@
 [build-system]
-requires = ["setuptools>=45", "wheel", "setuptools_scm>=6.2,<7"]
+requires = ["setuptools>=68", "wheel", "setuptools_scm>=6.2", "versionista>=1.1.0"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "cdisutils"
+dynamic = [
+  "version",
+  "description",
+  "readme",
+  "requires-python",
+  "license",
+  "authors",
+  "maintainers",
+  "keywords",
+  "classifiers",
+  "urls",
+  "scripts",
+  "gui-scripts",
+  "entry-points",
+  "dependencies",
+  "optional-dependencies"
+]
 
 [tool.black]
 include = '\.pyi?$'
-target-version = ["py37"]
+line-length = 98
 
 [tool.coverage.html]
-title = "inspector coverage report"
+title = "cdisutils coverage report"
 directory = "docs/htmlcov"
 show_contexts = true
 
 [tool.coverage.run]
 branch = true
 context = "unit tests"
-source = ["inspector"]
+source = ["cdisutils"]
 
 [tool.isort]
 profile = "black"
 known_first_party = ["cdisutils"]
 
 [tool.setuptools_scm]
-local_scheme = "no-local-version"
+local_scheme = "versionista-local-format"
+version_scheme = "versionista-format"
 
-[tool.towncrier]
-package = "cdisutils"
-package_dir = "cdisutils"
-filename = "changelog.rst"
-directory = "changelog"
+[tool.pytest.ini_options]
+minversion = 6.0
+# Silence warning by opting in to use pytest 6's new default value
+junit_family = "xunit2"
+junit_logging = "system-out"
+console_output_style = "classic"
+log_cli_level = "INFO"
+log_cli = "true"
+addopts = "-rfE --color=yes --cov=cdisutils --cov-report term"
+norecursedirs = [
+  ".git",
+  ".tox",
+  "dist",
+  "build"
+]
+testpaths = [
+    "tests/unit",
+    "tests/integration",
+]
