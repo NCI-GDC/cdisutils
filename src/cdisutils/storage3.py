@@ -336,7 +336,9 @@ class Boto3Manager:
         multipart_info["chunk_index"] = 1
         multipart_info["total_size"] = 0
         multipart_info["manifest"] = {"Parts": []}
-        multipart_info["md5_sum"] = hashlib.md5()
+        multipart_info["md5_sum"] = (
+            hashlib.md5() if sys.version_info < (3, 9) else hashlib.md5(usedforsecurity=False)
+        )  # nosec
         multipart_info["sha256_sum"] = hashlib.sha256()
         multipart_info["start_time"] = time.perf_counter()
         mp_info = self.conns[multipart_info["dst_info"]["s3_loc"]].create_multipart_upload(
@@ -589,7 +591,9 @@ class Boto3Manager:
     def checksum_s3_key(self, url=None):
         """Get the checksum of an s3 object"""
         result = {"transfer_time": 0, "bytes_transferred": 0}
-        md5sum = hashlib.md5()
+        md5sum = (
+            hashlib.md5() if sys.version_info < (3, 9) else hashlib.md5(usedforsecurity=False)
+        )  # nosec
         sha = hashlib.sha256()
         retries = 0
         result["start_time"] = time.time()
