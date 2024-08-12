@@ -81,3 +81,7 @@ detect-secrets audit .secrets.baseline
 # contributing
 
 Read how to contribute [here](https://github.com/nci-gdc/gdcapi/blob/master/contributing.md)
+
+[![Updates](https://pyup.io/repos/github/NCI-GDC/cdisutils/shield.svg)](https://pyup.io/repos/github/NCI-GDC/cdisutils/)
+
+[![Python 3](https://pyup.io/repos/github/NCI-GDC/cdisutils/python-3-shield.svg)](https://pyup.io/repos/github/NCI-GDC/cdisutils/)
