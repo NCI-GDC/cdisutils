@@ -4,3 +4,7 @@ include:
     ref: master
     file:
       - templates/artifacts/python-library.yaml
+      - templates/tag/tag.yaml
+
+tag:
+  stage: build-and-publish
