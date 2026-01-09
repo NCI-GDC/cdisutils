@@ -7,7 +7,6 @@ Utilities for working with object stores using boto3
 """
 
 import hashlib
-import _hashlib
 import io
 import json
 import logging
@@ -15,14 +14,19 @@ import os
 import re
 import sys
 import time
-from urllib.parse import urlparse
-from mypy_boto3_s3.client import S3Client
-from mypy_boto3_s3.type_defs import GetObjectOutputTypeDef, HeadObjectOutputTypeDef, BucketTypeDef
-
 from typing import TypedDict
+from urllib.parse import urlparse
+
+import _hashlib
 import boto3
 from botocore.exceptions import ClientError
 from botocore.response import StreamingBody
+from mypy_boto3_s3.client import S3Client
+from mypy_boto3_s3.type_defs import (
+    BucketTypeDef,
+    GetObjectOutputTypeDef,
+    HeadObjectOutputTypeDef,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -35,12 +39,14 @@ DEFAULT_MP_CHUNK_SIZE = 1073741824  # 1GiB
 # even interval of the mp_chunk_size above
 DEFAULT_DOWNLOAD_CHUNK_SIZE = 16777216  # 16MiB
 
+
 class S3Info(TypedDict):
     url: str
     s3_loc: str
     bucket_name: str
     key_name: str
-        
+
+
 class MultipartInfoDict(TypedDict):
     dst_info: S3Info
     src_info: S3Info
@@ -55,11 +61,13 @@ class MultipartInfoDict(TypedDict):
     sha256_sum: _hashlib.HASH
     start_time: float
     mp_id: str
-        
+
+
 class MultiPartCopyDict(TypedDict):
     md5_sum: str
     sha256_sum: str
     bytes_transferred: int
+
 
 class ChecksumResultDict(TypedDict):
     transfer_time: float
@@ -67,6 +75,7 @@ class ChecksumResultDict(TypedDict):
     start_time: float
     md5_sum: str
     sha256_sum: str
+
 
 def get_nearest_file_size(size: int | float) -> tuple[int, str]:
     """
@@ -93,7 +102,9 @@ def get_nearest_file_size(size: int | float) -> tuple[int, str]:
     return value
 
 
-def print_running_status(transferred_bytes: int, start_time: float, total_size: int, msg_id: int = 0):
+def print_running_status(
+    transferred_bytes: int, start_time: float, total_size: int, msg_id: int = 0
+):
     """Print the status of a transfer, given time and size"""
     size_info = get_nearest_file_size(transferred_bytes)
     cur_time = time.perf_counter()
@@ -185,7 +196,13 @@ class Boto3Manager:
 
     log = logger
 
-    def __init__(self, config: dict | None = None, lazy: bool = False, host_aliases: dict | None = None, stream_status: bool = False):
+    def __init__(
+        self,
+        config: dict | None = None,
+        lazy: bool = False,
+        host_aliases: dict | None = None,
+        stream_status: bool = False,
+    ):
         """
         Config map should be a map from hostname to args, e.g.:
         {
@@ -306,8 +323,7 @@ class Boto3Manager:
                 break
         bucket_name = str(parts.path).split("/")[1]
         key_name = "/".join(str(parts.path).split("/")[2:])
-        s3_info = S3Info(
-            url=url, s3_loc=s3_loc, bucket_name=bucket_name, key_name=key_name)
+        s3_info = S3Info(url=url, s3_loc=s3_loc, bucket_name=bucket_name, key_name=key_name)
 
         return s3_info
 
@@ -363,7 +379,7 @@ class Boto3Manager:
         """
         dst_info: S3Info = self.parse_url(url=dst_url)
         src_info: S3Info = self.parse_url(url=src_url)
-        
+
         mp_info = self.conns[dst_info["s3_loc"]].create_multipart_upload(
             Bucket=dst_info["bucket_name"],
             Key=dst_info["key_name"],
@@ -372,7 +388,7 @@ class Boto3Manager:
             upload_id = mp_info["UploadId"]
         except KeyError:
             raise Exception("Unable to get valid ID for multipart upload: %s" % mp_info)
-        
+
         multipart_info = MultipartInfoDict(
             dst_info=dst_info,
             src_info=src_info,
@@ -440,7 +456,13 @@ class Boto3Manager:
         """Downloads a chunk of an object"""
         return key.read(amt=self.chunk_size)
 
-    def copy_multipart_file(self, src_info: S3Info | str, dst_info: S3Info | str, stream_status: bool = True, msg_id: int = 0) -> MultiPartCopyDict:
+    def copy_multipart_file(
+        self,
+        src_info: S3Info | str,
+        dst_info: S3Info | str,
+        stream_status: bool = True,
+        msg_id: int = 0,
+    ) -> MultiPartCopyDict:
         """
         Routine to use boto3 to copy a file
         multipart between object stores
@@ -523,11 +545,13 @@ class Boto3Manager:
         else:
             self.log.warning("Unable to get %s", src_info["url"])
 
-        return MultiPartCopyDict(**{
-            "md5_sum": str(mp_info["md5_sum"].hexdigest()),
-            "sha256_sum": str(mp_info["sha256_sum"].hexdigest()),
-            "bytes_transferred": mp_info["total_size"],
-        })
+        return MultiPartCopyDict(
+            **{
+                "md5_sum": str(mp_info["md5_sum"].hexdigest()),
+                "sha256_sum": str(mp_info["sha256_sum"].hexdigest()),
+                "bytes_transferred": mp_info["total_size"],
+            }
+        )
 
     def load_file(self, url: str, stream_status: bool = False) -> str:
         """Load an object into memory"""
@@ -572,7 +596,9 @@ class Boto3Manager:
         self.log.info("%d lines received", len(str(file_data)))
         return file_data.decode()
 
-    def parse_data_file(self, uri: str, data_type: str = "tsv", custom_delimiter: str | None = None) -> list:
+    def parse_data_file(
+        self, uri: str, data_type: str = "tsv", custom_delimiter: str | None = None
+    ) -> list:
         """
         Processes loaded data as a tsv, csv, or
         json, returning it as a list of dicts
@@ -663,15 +689,13 @@ class Boto3Manager:
                     retries = 0
             else:
                 bytes_transferred += len(chunk)
-                if (len(chunk) < self.chunk_size) and (
-                    bytes_transferred >= file_key_size
-                ):
+                if (len(chunk) < self.chunk_size) and (bytes_transferred >= file_key_size):
                     running = False
 
                 if file_key_size > 0:
                     sys.stdout.write(
                         "{:6.02f}%\r".format(
-                            float(bytes_transferred]) / float(file_key_size) * 100.0
+                            float(bytes_transferred) / float(file_key_size) * 100.0
                         )
                     )
                 else:
@@ -685,7 +709,7 @@ class Boto3Manager:
         return ChecksumResultDict(
             transfer_time=transfer_time,
             md5_sum=md5sum.hexdigest(),
-            sha256_sum = sha.hexdigest(),
+            sha256_sum=sha.hexdigest(),
             bytes_transferred=bytes_transferred,
             start_time=start_time,
         )
