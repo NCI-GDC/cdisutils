@@ -26,6 +26,7 @@ from mypy_boto3_s3.type_defs import (
     BucketTypeDef,
     GetObjectOutputTypeDef,
     HeadObjectOutputTypeDef,
+    CompletedMultipartUploadTypeDef,
 )
 
 logger = logging.getLogger(__name__)
@@ -56,7 +57,7 @@ class MultipartInfoDict(TypedDict):
     cur_size: int
     chunk_index: int
     total_size: int
-    manifest: dict
+    manifest: CompletedMultipartUploadTypeDef
     md5_sum: _hashlib.HASH
     sha256_sum: _hashlib.HASH
     start_time: float
@@ -449,7 +450,7 @@ class Boto3Manager:
                 "ETag": result["ETag"],
                 "PartNumber": mp_info["chunk_index"],
             }
-            mp_info["manifest"]["Parts"].append(mp_info_part)
+            mp_info["manifest"]["Parts"].append(mp_info_part) # type: ignore
             mp_info["chunk_index"] += 1
 
     def download_object_part(self, key: StreamingBody) -> bytes:
@@ -546,11 +547,9 @@ class Boto3Manager:
             self.log.warning("Unable to get %s", src_info["url"])
 
         return MultiPartCopyDict(
-            **{
-                "md5_sum": str(mp_info["md5_sum"].hexdigest()),
-                "sha256_sum": str(mp_info["sha256_sum"].hexdigest()),
-                "bytes_transferred": mp_info["total_size"],
-            }
+            md5_sum=str(mp_info["md5_sum"].hexdigest()),
+            sha256_sum=str(mp_info["sha256_sum"].hexdigest()),
+            bytes_transferred=mp_info["total_size"],
         )
 
     def load_file(self, url: str, stream_status: bool = False) -> str:
@@ -585,11 +584,8 @@ class Boto3Manager:
                         total_transfer += len(chunk)
                         file_data.extend(chunk)
                         if stream_status:
-                            sys.stdout.write(
-                                "%6.02%%\r",
-                                float(total_transfer) / float(file_key.size) * 100.0,
-                            )
-                            sys.stdout.flush()
+                            # Previous implementation referenced non-existant size attribute of file_key
+                            pass
             else:
                 self.log.warning("Unable to find %s", url)
 
@@ -652,7 +648,6 @@ class Boto3Manager:
 
     def checksum_s3_key(self, url: str) -> ChecksumResultDict:
         """Get the checksum of an s3 object"""
-        transfer_time = 0
         bytes_transferred = 0
         start_time = time.time()
         md5sum = hashlib.md5(usedforsecurity=False)
