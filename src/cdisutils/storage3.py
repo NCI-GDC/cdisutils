@@ -14,20 +14,22 @@ import os
 import re
 import sys
 import time
-from typing import TypedDict
+from typing import TypedDict, TYPE_CHECKING
 from urllib.parse import urlparse
 
 import _hashlib
 import boto3
 from botocore.exceptions import ClientError
-from botocore.response import StreamingBody
-from mypy_boto3_s3.client import S3Client
-from mypy_boto3_s3.type_defs import (
-    BucketTypeDef,
-    GetObjectOutputTypeDef,
-    HeadObjectOutputTypeDef,
-    CompletedMultipartUploadTypeDef,
-)
+
+if TYPE_CHECKING:
+    from botocore.response import StreamingBody
+    from mypy_boto3_s3.client import S3Client
+    from mypy_boto3_s3.type_defs import (
+        BucketTypeDef,
+        GetObjectOutputTypeDef,
+        HeadObjectOutputTypeDef,
+        CompletedMultipartUploadTypeDef,
+    )
 
 logger = logging.getLogger(__name__)
 
