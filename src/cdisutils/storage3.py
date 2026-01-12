@@ -14,10 +14,22 @@ import os
 import re
 import sys
 import time
+from typing import TYPE_CHECKING, TypedDict
 from urllib.parse import urlparse
 
+import _hashlib
 import boto3
 from botocore.exceptions import ClientError
+
+if TYPE_CHECKING:
+    from botocore.response import StreamingBody
+    from mypy_boto3_s3.client import S3Client
+    from mypy_boto3_s3.type_defs import (
+        BucketTypeDef,
+        CompletedMultipartUploadTypeDef,
+        GetObjectOutputTypeDef,
+        HeadObjectOutputTypeDef,
+    )
 
 logger = logging.getLogger(__name__)
 
@@ -31,7 +43,44 @@ DEFAULT_MP_CHUNK_SIZE = 1073741824  # 1GiB
 DEFAULT_DOWNLOAD_CHUNK_SIZE = 16777216  # 16MiB
 
 
-def get_nearest_file_size(size):
+class S3Info(TypedDict):
+    url: str
+    s3_loc: str
+    bucket_name: str
+    key_name: str
+
+
+class MultipartInfoDict(TypedDict):
+    dst_info: S3Info
+    src_info: S3Info
+    stream_buffer: io.BytesIO
+    mp_chunk_size: int
+    download_chunk_size: int
+    cur_size: int
+    chunk_index: int
+    total_size: int
+    manifest: CompletedMultipartUploadTypeDef
+    md5_sum: _hashlib.HASH
+    sha256_sum: _hashlib.HASH
+    start_time: float
+    mp_id: str
+
+
+class MultiPartCopyDict(TypedDict):
+    md5_sum: str
+    sha256_sum: str
+    bytes_transferred: int
+
+
+class ChecksumResultDict(TypedDict):
+    transfer_time: float
+    bytes_transferred: int
+    start_time: float
+    md5_sum: str
+    sha256_sum: str
+
+
+def get_nearest_file_size(size: int | float) -> tuple[int, str]:
     """
     Given a size, in bytes, get the nearest canonical
     size, and return both the divisor and string size
@@ -56,7 +105,9 @@ def get_nearest_file_size(size):
     return value
 
 
-def print_running_status(transferred_bytes=None, start_time=None, total_size=None, msg_id=0):
+def print_running_status(
+    transferred_bytes: int, start_time: float, total_size: int, msg_id: int = 0
+):
     """Print the status of a transfer, given time and size"""
     size_info = get_nearest_file_size(transferred_bytes)
     cur_time = time.perf_counter()
@@ -85,7 +136,7 @@ def print_running_status(transferred_bytes=None, start_time=None, total_size=Non
     sys.stdout.flush()
 
 
-def load_creds():
+def load_creds() -> dict:
     """Load s3 creds from environment vars"""
     s3_creds = {}
     s3_key_mapping = {
@@ -148,7 +199,13 @@ class Boto3Manager:
 
     log = logger
 
-    def __init__(self, config=None, lazy=False, host_aliases=None, stream_status=False):
+    def __init__(
+        self,
+        config: dict | None = None,
+        lazy: bool = False,
+        host_aliases: dict | None = None,
+        stream_status: bool = False,
+    ):
         """
         Config map should be a map from hostname to args, e.g.:
         {
@@ -182,7 +239,7 @@ class Boto3Manager:
         else:
             self.host_aliases = {}
 
-        self.conns = {}
+        self.conns: dict[str, S3Client] = {}
         if not lazy:
             self.connect()
 
@@ -211,11 +268,11 @@ class Boto3Manager:
         self.mp_chunk_size = DEFAULT_MP_CHUNK_SIZE
         self.chunk_size = DEFAULT_DOWNLOAD_CHUNK_SIZE
 
-    def __getitem__(self, host):
+    def __getitem__(self, host: str) -> S3Client:
         """Internal call for getting a connection"""
         return self.get_connection(host)
 
-    def harmonize_host(self, host):
+    def harmonize_host(self, host: str) -> str:
         """Harmonize a host name to get one in the list of hosts"""
         matches = {
             alias: aliased_host
@@ -232,16 +289,16 @@ class Boto3Manager:
         else:
             return host
 
-    def get_connection(self, host):
+    def get_connection(self, host: str) -> S3Client:
         """Get an s3 connection handle"""
         return self.conns[self.harmonize_host(host)]
 
-    def connect(self):
+    def connect(self) -> None:
         """Connect to all hosts in config"""
         for host in self.config:
             self.conns[host] = self.new_connection_to(host)
 
-    def new_connection_to(self, host):
+    def new_connection_to(self, host: str) -> S3Client:
         """Connect to a given host"""
         if "https" not in host:
             s3_url = f"https://{host}"
@@ -250,8 +307,6 @@ class Boto3Manager:
         # TODO: Allow the location to be passed in via config
         cur_dict = dict(self.config[host])
         del cur_dict["host"]
-        if "ceph" in s3_url:
-            cur_dict["config"] = boto3.session.Config(signature_version="s3")
         if cur_dict.get("verify") == "false":
             print("Skipping verify")
             cur_dict.pop("verify")
@@ -262,20 +317,20 @@ class Boto3Manager:
 
         return conn
 
-    def parse_url(self, url=None):
+    def parse_url(self, url: str) -> S3Info:
         """Parse a URL into a dictionary with component parts"""
-        s3_info = {"url": url, "s3_loc": None, "bucket_name": None, "key_name": None}
         parts = urlparse(url)
         for key in self.config:
             if key in parts.netloc:
-                s3_info["s3_loc"] = key
+                s3_loc = key
                 break
-        s3_info["bucket_name"] = parts.path.split("/")[1]
-        s3_info["key_name"] = "/".join(parts.path.split("/")[2:])
+        bucket_name = str(parts.path).split("/")[1]
+        key_name = "/".join(str(parts.path).split("/")[2:])
+        s3_info = S3Info(url=url, s3_loc=s3_loc, bucket_name=bucket_name, key_name=key_name)
 
         return s3_info
 
-    def get_url(self, url):
+    def get_url(self, url: str) -> GetObjectOutputTypeDef:
         """
         Parse an s3://host/bucket/key formatted url and return the
         corresponding boto Key object.
@@ -288,7 +343,7 @@ class Boto3Manager:
         )
         return key
 
-    def head_url(self, url):
+    def head_url(self, url: str) -> HeadObjectOutputTypeDef | None:
         """
         Parse an s3://host/bucket/key formatted url and return the
         corresponding boto Key metadata without the object.
@@ -306,7 +361,7 @@ class Boto3Manager:
 
         return key
 
-    def list_buckets(self, host=None):
+    def list_buckets(self, host: str | None = None) -> list[BucketTypeDef]:
         """List all buckets available for a given host"""
         bucket_list = []
         if host:
@@ -319,39 +374,43 @@ class Boto3Manager:
 
         return bucket_list
 
-    def create_multipart_upload(self, src_url=None, dst_url=None):
+    def create_multipart_upload(self, src_url: str, dst_url: str) -> MultipartInfoDict:
         """
         Create a multipart upload, holding session info in a dict
 
         TODO: Hold this in the class vars
         """
-        multipart_info = {}
+        dst_info: S3Info = self.parse_url(url=dst_url)
+        src_info: S3Info = self.parse_url(url=src_url)
 
-        multipart_info["dst_info"] = self.parse_url(url=dst_url)
-        multipart_info["src_info"] = self.parse_url(url=src_url)
-        multipart_info["stream_buffer"] = io.BytesIO()
-        multipart_info["mp_chunk_size"] = self.mp_chunk_size
-        multipart_info["download_chunk_size"] = self.chunk_size
-        multipart_info["cur_size"] = 0
-        multipart_info["chunk_index"] = 1
-        multipart_info["total_size"] = 0
-        multipart_info["manifest"] = {"Parts": []}
-        multipart_info["md5_sum"] = (
-            hashlib.md5() if sys.version_info < (3, 9) else hashlib.md5(usedforsecurity=False)
-        )  # nosec
-        multipart_info["sha256_sum"] = hashlib.sha256()
-        multipart_info["start_time"] = time.perf_counter()
-        mp_info = self.conns[multipart_info["dst_info"]["s3_loc"]].create_multipart_upload(
-            Bucket=multipart_info["dst_info"]["bucket_name"],
-            Key=multipart_info["dst_info"]["key_name"],
+        mp_info = self.conns[dst_info["s3_loc"]].create_multipart_upload(
+            Bucket=dst_info["bucket_name"],
+            Key=dst_info["key_name"],
         )
-        multipart_info["mp_id"] = mp_info.get("UploadId", None)
-        if not multipart_info["mp_id"]:
+        try:
+            upload_id = mp_info["UploadId"]
+        except KeyError:
             raise Exception("Unable to get valid ID for multipart upload: %s" % mp_info)
+
+        multipart_info = MultipartInfoDict(
+            dst_info=dst_info,
+            src_info=src_info,
+            stream_buffer=io.BytesIO(),
+            mp_chunk_size=self.mp_chunk_size,
+            download_chunk_size=self.chunk_size,
+            cur_size=0,
+            chunk_index=1,
+            total_size=0,
+            manifest={"Parts": []},
+            md5_sum=hashlib.md5(usedforsecurity=False),
+            sha256_sum=hashlib.sha256(),
+            start_time=time.perf_counter(),
+            mp_id=upload_id,
+        )
 
         return multipart_info
 
-    def complete_multipart_upload(self, mp_info=None):
+    def complete_multipart_upload(self, mp_info: MultipartInfoDict) -> None:
         """
         Completes a multipart upload, using the
         manifest aggregated by uploading parts
@@ -368,7 +427,7 @@ class Boto3Manager:
                 "Unable to complete mulitpart {}: {}".format(mp_info["mp_id"], exception)
             )
 
-    def upload_multipart_chunk(self, mp_info):
+    def upload_multipart_chunk(self, mp_info: MultipartInfoDict) -> None:
         """Uploads a multipart chunk of an object"""
 
         mp_info["stream_buffer"].seek(0)
@@ -393,14 +452,20 @@ class Boto3Manager:
                 "ETag": result["ETag"],
                 "PartNumber": mp_info["chunk_index"],
             }
-            mp_info["manifest"]["Parts"].append(mp_info_part)
+            mp_info["manifest"]["Parts"].append(mp_info_part)  # type: ignore
             mp_info["chunk_index"] += 1
 
-    def download_object_part(self, key):
+    def download_object_part(self, key: StreamingBody) -> bytes:
         """Downloads a chunk of an object"""
         return key.read(amt=self.chunk_size)
 
-    def copy_multipart_file(self, src_info=None, dst_info=None, stream_status=True, msg_id=0):
+    def copy_multipart_file(
+        self,
+        src_info: S3Info | str,
+        dst_info: S3Info | str,
+        stream_status: bool = True,
+        msg_id: int = 0,
+    ) -> MultiPartCopyDict:
         """
         Routine to use boto3 to copy a file
         multipart between object stores
@@ -430,8 +495,8 @@ class Boto3Manager:
             raise Exception("Unable to get {}: {}".format(src_info["url"], exception))
 
         if src_key_info:
-            src_key = src_key_info.get("Body", None)
-            src_key_size = src_key_info.get("ContentLength", None)
+            src_key: StreamingBody = src_key_info["Body"]
+            src_key_size = src_key_info["ContentLength"]
             mp_info = self.create_multipart_upload(
                 src_url=src_info["url"], dst_url=dst_info["url"]
             )
@@ -453,10 +518,7 @@ class Boto3Manager:
 
                 if mp_info["cur_size"] >= mp_info["mp_chunk_size"]:
                     self.upload_multipart_chunk(mp_info=mp_info)
-                try:
-                    chunk = self.download_object_part(key=src_key)
-                except ClientError as exception:
-                    raise Exception(f"Unable to read from {src_key.name}: {exception}")
+                chunk = self.download_object_part(key=src_key)
 
             # write the remaining data
             self.upload_multipart_chunk(mp_info=mp_info)
@@ -486,19 +548,18 @@ class Boto3Manager:
         else:
             self.log.warning("Unable to get %s", src_info["url"])
 
-        return {
-            "md5_sum": str(mp_info["md5_sum"].hexdigest()),
-            "sha256_sum": str(mp_info["sha256_sum"].hexdigest()),
-            "bytes_transferred": mp_info["total_size"],
-        }
+        return MultiPartCopyDict(
+            md5_sum=str(mp_info["md5_sum"].hexdigest()),
+            sha256_sum=str(mp_info["sha256_sum"].hexdigest()),
+            bytes_transferred=mp_info["total_size"],
+        )
 
-    def load_file(self, url=None, stream_status=False):
+    def load_file(self, url: str, stream_status: bool = False) -> str:
         """Load an object into memory"""
 
         downloading = True
         file_data = bytearray()
         total_transfer = 0
-        chunk = []
 
         # get the key from the bucket
         self.log.info("Getting %s", url)
@@ -525,18 +586,17 @@ class Boto3Manager:
                         total_transfer += len(chunk)
                         file_data.extend(chunk)
                         if stream_status:
-                            sys.stdout.write(
-                                "%6.02%%\r",
-                                float(total_transfer) / float(file_key.size) * 100.0,
-                            )
-                            sys.stdout.flush()
+                            # Previous implementation referenced non-existant size attribute of file_key
+                            pass
             else:
-                self.log.warn("Unable to find %s", url)
+                self.log.warning("Unable to find %s", url)
 
         self.log.info("%d lines received", len(str(file_data)))
         return file_data.decode()
 
-    def parse_data_file(self, uri=None, data_type="tsv", custom_delimiter=None):
+    def parse_data_file(
+        self, uri: str, data_type: str = "tsv", custom_delimiter: str | None = None
+    ) -> list:
         """
         Processes loaded data as a tsv, csv, or
         json, returning it as a list of dicts
@@ -588,21 +648,19 @@ class Boto3Manager:
         self.log.info("%d lines in file, %d processed", len(file_data.split("\n")), len(key_data))
         return key_data
 
-    def checksum_s3_key(self, url=None):
+    def checksum_s3_key(self, url: str) -> ChecksumResultDict:
         """Get the checksum of an s3 object"""
-        result = {"transfer_time": 0, "bytes_transferred": 0}
-        md5sum = (
-            hashlib.md5() if sys.version_info < (3, 9) else hashlib.md5(usedforsecurity=False)
-        )  # nosec
+        bytes_transferred = 0
+        start_time = time.time()
+        md5sum = hashlib.md5(usedforsecurity=False)
         sha = hashlib.sha256()
         retries = 0
-        result["start_time"] = time.time()
         running = False
         total_transfer = 0
         file_key_info = self.get_url(url=url)
         if file_key_info:
-            file_key = file_key_info.get("Body", None)
-            file_key_size = file_key_info.get("ContentLength", None)
+            file_key = file_key_info["Body"]
+            file_key_size = file_key_info["ContentLength"]
             running = True
             # file_key.BufferSize = self.chunk_size
         else:
@@ -627,16 +685,14 @@ class Boto3Manager:
                     sha.update(chunk)
                     retries = 0
             else:
-                result["bytes_transferred"] += len(chunk)
-                if (len(chunk) < self.chunk_size) and (
-                    result["bytes_transferred"] >= file_key_size
-                ):
+                bytes_transferred += len(chunk)
+                if (len(chunk) < self.chunk_size) and (bytes_transferred >= file_key_size):
                     running = False
 
                 if file_key_size > 0:
                     sys.stdout.write(
                         "{:6.02f}%\r".format(
-                            float(result["bytes_transferred"]) / float(file_key_size) * 100.0
+                            float(bytes_transferred) / float(file_key_size) * 100.0
                         )
                     )
                 else:
@@ -646,7 +702,11 @@ class Boto3Manager:
                 sha.update(chunk)
                 retries = 0
 
-        result["transfer_time"] = time.time() - result["start_time"]
-        result["md5_sum"] = md5sum.hexdigest()
-        result["sha256_sum"] = sha.hexdigest()
-        return result
+        transfer_time = time.time() - start_time
+        return ChecksumResultDict(
+            transfer_time=transfer_time,
+            md5_sum=md5sum.hexdigest(),
+            sha256_sum=sha.hexdigest(),
+            bytes_transferred=bytes_transferred,
+            start_time=start_time,
+        )
