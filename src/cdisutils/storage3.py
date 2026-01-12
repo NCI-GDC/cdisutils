@@ -14,7 +14,7 @@ import os
 import re
 import sys
 import time
-from typing import TypedDict, TYPE_CHECKING
+from typing import TYPE_CHECKING, TypedDict
 from urllib.parse import urlparse
 
 import _hashlib
@@ -26,9 +26,9 @@ if TYPE_CHECKING:
     from mypy_boto3_s3.client import S3Client
     from mypy_boto3_s3.type_defs import (
         BucketTypeDef,
+        CompletedMultipartUploadTypeDef,
         GetObjectOutputTypeDef,
         HeadObjectOutputTypeDef,
-        CompletedMultipartUploadTypeDef,
     )
 
 logger = logging.getLogger(__name__)
@@ -452,7 +452,7 @@ class Boto3Manager:
                 "ETag": result["ETag"],
                 "PartNumber": mp_info["chunk_index"],
             }
-            mp_info["manifest"]["Parts"].append(mp_info_part) # type: ignore
+            mp_info["manifest"]["Parts"].append(mp_info_part)  # type: ignore
             mp_info["chunk_index"] += 1
 
     def download_object_part(self, key: StreamingBody) -> bytes:
